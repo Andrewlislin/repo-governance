@@ -17,6 +17,19 @@ npm test
 npm run check:static
 ```
 
+## 源码安装
+
+适用于本地开发或让 Agent 协助部署：
+
+```sh
+git clone https://github.com/Andrewlislin/repo-governance.git
+cd repo-governance
+npm ci
+npm run install:local
+```
+
+该命令会构建本地 engine，安装到标准 repo-governance 数据目录，并输出下一步安装 hooks 的命令。
+
 安装的 pre-push hook 保持精简且离线运行。它调用平台数据目录中的稳定 dispatcher；dispatcher 从 `.repo-governance.json` 读取 `engineCommitSha`，验证锁定的可执行文件，然后运行 `repo-governance check`。如果引擎缺失或损坏，检查会明确失败并提示执行 `repo-governance update`。
 
 ## 初始化未来仓库
