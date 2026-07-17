@@ -56,7 +56,14 @@ test("thin caller pins reusable workflow to the same full engine commit", () => 
 
 test("release requires both checksum metadata and GitHub artifact attestation", () => {
   const contents = readFileSync(join(root, ".github", "workflows", "release.yml"), "utf8");
+  const indexWriter = readFileSync(join(root, "scripts", "write-release-index.mjs"), "utf8");
   assert.match(contents, /attest-build-provenance@[0-9a-f]{40}/);
   assert.match(contents, /package:release/);
-  assert.match(contents, /SHA256SUMS|release\/\$\{\{ matrix\.platform \}\}/);
+  assert.match(contents, /id: package-version/);
+  assert.match(contents, /release\/assets\/\$\{\{ matrix\.platform \}\}\/repo-governance-v\$\{\{ steps\.package-version\.outputs\.version \}\}-/);
+  assert.match(contents, /release\/assets\/\$\{\{ matrix\.platform \}\}\/release-manifest\.json/);
+  assert.match(contents, /write-release-index\.mjs/);
+  assert.match(contents, /release\/final\/\*/);
+  assert.doesNotMatch(contents, /gh release create "\$GITHUB_REF_NAME" release\/\*\*/);
+  assert.match(indexWriter, /SHA256SUMS/);
 });
