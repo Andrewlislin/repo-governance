@@ -1,4 +1,5 @@
 import { readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -9,7 +10,7 @@ function files(directory) {
   });
 }
 
-for (const file of files(new URL("../src", import.meta.url).pathname)) {
+for (const file of files(fileURLToPath(new URL("../src", import.meta.url)))) {
   const result = spawnSync(process.execPath, ["--check", file], { stdio: "inherit" });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }

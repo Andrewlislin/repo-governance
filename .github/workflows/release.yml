@@ -42,7 +42,9 @@ jobs:
       - name: Read package version
         id: package-version
         shell: bash
-        run: echo "version=$(node -p \"JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version\")" >> "$GITHUB_OUTPUT"
+        run: |
+          version="$(node -p "JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version")"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
       - name: Build self-contained executables
         run: npm run build:sea
         env:
