@@ -3,7 +3,7 @@
     {
       "id": "pr-1-core",
       "description": "Governance core, RG001/RG005, dispatcher, hooks, and controlled updates",
-      "passes": false
+      "passes": true
     },
     {
       "id": "pr-2-rules-and-skills",

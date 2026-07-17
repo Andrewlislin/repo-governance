@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Andrewlislin/repo-governance/schemas/repo-governance.schema.json",
+  "title": "Repository governance configuration",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "engineVersion",
+    "engineCommitSha",
+    "diffFingerprintAlgorithm",
+    "defaultBranch",
+    "highImpactMappings",
+    "testCategories"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "engineVersion": { "type": "string", "minLength": 1 },
+    "engineCommitSha": { "type": "string", "minLength": 1 },
+    "diffFingerprintAlgorithm": { "const": "git-raw-z-v1-sha256" },
+    "defaultBranch": { "type": "string", "minLength": 1 },
+    "testCategories": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 }
+      }
+    },
+    "highImpactMappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["businessPaths", "requirements"],
+        "properties": {
+          "businessPaths": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+          "requirements": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["anyOf"],
+              "properties": {
+                "anyOf": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

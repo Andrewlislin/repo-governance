@@ -1,0 +1,8 @@
+#!/bin/sh
+# repo-governance:stable-dispatcher
+if [ -n "${XDG_DATA_HOME:-}" ]; then
+  repo_governance_data_root="$XDG_DATA_HOME/repo-governance"
+else
+  repo_governance_data_root="$HOME/.local/share/repo-governance"
+fi
+exec "$repo_governance_data_root/dispatcher" pre-push "$@"

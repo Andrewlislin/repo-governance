@@ -1,0 +1,62 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { GovernanceError } from "./errors.mjs";
+import { DIFF_FINGERPRINT_ALGORITHM } from "./fingerprint.mjs";
+import { runtimeIdentity } from "./version.mjs";
+
+export const CONFIG_FILE = ".repo-governance.json";
+
+function expect(condition, message, details = {}) {
+  if (!condition) {
+    throw new GovernanceError(message, { code: "RG_CONFIG", details });
+  }
+}
+
+export function validateConfig(config, { identity = runtimeIdentity(), enforceEngine = true } = {}) {
+  expect(config && typeof config === "object" && !Array.isArray(config), "Governance configuration must be an object.");
+  expect(config.schemaVersion === 1, "Unsupported schemaVersion; expected 1.");
+  expect(typeof config.engineVersion === "string" && config.engineVersion.length > 0, "engineVersion is required.");
+  expect(typeof config.engineCommitSha === "string" && config.engineCommitSha.length > 0, "engineCommitSha is required.");
+  expect(config.diffFingerprintAlgorithm === DIFF_FINGERPRINT_ALGORITHM, `diffFingerprintAlgorithm must be ${DIFF_FINGERPRINT_ALGORITHM}.`);
+  expect(typeof config.defaultBranch === "string" && config.defaultBranch.length > 0, "defaultBranch is required.");
+  expect(config.testCategories && typeof config.testCategories === "object", "testCategories is required.");
+  expect(Array.isArray(config.highImpactMappings), "highImpactMappings must be an array.");
+
+  for (const [category, patterns] of Object.entries(config.testCategories)) {
+    expect(Array.isArray(patterns) && patterns.every((item) => typeof item === "string" && item.length > 0), `Invalid paths for test category ${category}.`);
+  }
+  for (const mapping of config.highImpactMappings) {
+    expect(Array.isArray(mapping.businessPaths) && mapping.businessPaths.length > 0, "Each high-impact mapping needs businessPaths.");
+    expect(Array.isArray(mapping.requirements) && mapping.requirements.length > 0, "Each high-impact mapping needs requirements.");
+    for (const requirement of mapping.requirements) {
+      expect(Array.isArray(requirement.anyOf) && requirement.anyOf.length > 0, "Each mapping requirement needs an anyOf category list.");
+      for (const category of requirement.anyOf) {
+        expect(Object.hasOwn(config.testCategories, category), `Unknown test category in high-impact mapping: ${category}.`);
+      }
+    }
+  }
+  if (enforceEngine && identity.commitSha !== "development") {
+    expect(
+      config.engineVersion === identity.version && config.engineCommitSha === identity.commitSha,
+      "Local CLI, hook, and configuration versions differ. Run repo-governance update before checking.",
+      { configured: { version: config.engineVersion, commitSha: config.engineCommitSha }, runtime: identity },
+    );
+  }
+  return config;
+}
+
+export function readConfig(repo, options) {
+  const path = join(repo, CONFIG_FILE);
+  let config;
+  try {
+    config = JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    throw new GovernanceError(`Unable to read ${CONFIG_FILE}: ${error.message}`, { code: "RG_CONFIG" });
+  }
+  return validateConfig(config, options);
+}
+
+export function writeConfig(repo, config) {
+  validateConfig(config, { enforceEngine: false });
+  writeFileSync(join(repo, CONFIG_FILE), `${JSON.stringify(config, null, 2)}\n`, { flag: "wx" });
+}
