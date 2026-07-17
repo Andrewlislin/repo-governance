@@ -56,6 +56,7 @@ export function baseConfig(overrides = {}) {
     guards: [],
     policyChecks: [],
     workflowAllowedEntries: [],
+    publicCommands: [],
     ...overrides,
   };
 }

@@ -30,6 +30,14 @@ export function validateConfig(config, { identity = runtimeIdentity(), enforceEn
   expect(config.guards === undefined || Array.isArray(config.guards), "guards must be an array.");
   expect(config.policyChecks === undefined || Array.isArray(config.policyChecks), "policyChecks must be an array.");
   expect(config.workflowAllowedEntries === undefined || Array.isArray(config.workflowAllowedEntries), "workflowAllowedEntries must be an array.");
+  expect(config.publicCommands === undefined || Array.isArray(config.publicCommands), "publicCommands must be an array.");
+  for (const command of config.publicCommands || []) {
+    expect(typeof command.id === "string" && typeof command.manifest === "string" && typeof command.command === "string", "Each public command needs id, manifest, and command.");
+    expect(/^[0-9a-f]{64}$/.test(command.definitionHash || ""), `Public command ${command.id} needs a lowercase SHA-256 definitionHash.`);
+    expect(typeof command.semantics === "string" && command.semantics.length > 0, `Public command ${command.id} needs semantics.`);
+    expect(typeof command.tier === "string" && command.tier.length > 0, `Public command ${command.id} needs a test tier.`);
+    for (const kind of ["contractTests", "docs", "workflows"]) expect(Array.isArray(command.consumers?.[kind]) && command.consumers[kind].length > 0, `Public command ${command.id} needs ${kind} consumers.`);
+  }
 
   for (const [category, patterns] of Object.entries(config.testCategories)) {
     expect(Array.isArray(patterns) && patterns.every((item) => typeof item === "string" && item.length > 0), `Invalid paths for test category ${category}.`);

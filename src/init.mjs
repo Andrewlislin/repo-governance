@@ -4,6 +4,7 @@ import { GovernanceError } from "./errors.mjs";
 import { writeConfig } from "./config.mjs";
 import { DIFF_FINGERPRINT_ALGORITHM } from "./fingerprint.mjs";
 import { runtimeIdentity } from "./version.mjs";
+import { commandDefinitionHash } from "./rg004.mjs";
 
 export function detectCandidates(repo) {
   const candidates = { ecosystems: [], manifests: [], commands: [] };
@@ -13,7 +14,7 @@ export function detectCandidates(repo) {
     candidates.ecosystems.push(existsSync(join(repo, "bun.lock")) || existsSync(join(repo, "bun.lockb")) ? "bun" : "node");
     candidates.manifests.push("package.json");
     for (const command of ["test", "check:static", "tauri:build"]) {
-      if (manifest.scripts?.[command]) candidates.commands.push({ manifest: "package.json", command, definition: manifest.scripts[command] });
+      if (manifest.scripts?.[command]) candidates.commands.push({ manifest: "package.json", command, definition: manifest.scripts[command], definitionHash: commandDefinitionHash(manifest.scripts[command]) });
     }
   }
   if (existsSync(join(repo, "pnpm-workspace.yaml"))) candidates.ecosystems.push("pnpm-workspace");

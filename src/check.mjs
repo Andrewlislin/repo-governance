@@ -4,6 +4,7 @@ import { evaluateRg001 } from "./rg001.mjs";
 import { applyLocalWaivers } from "./waiver.mjs";
 import { evaluateRg002 } from "./rg002.mjs";
 import { evaluateRg003 } from "./rg003.mjs";
+import { evaluateRg004 } from "./rg004.mjs";
 
 export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const config = readConfig(repo);
@@ -14,7 +15,8 @@ export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const waived = applyLocalWaivers(repo, rg001.findings, endpoints.canonicalBaseSha, endpoints.headSha, now);
   const rg002 = evaluateRg002(repo, config);
   const rg003 = evaluateRg003(repo, config);
-  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings];
+  const rg004 = evaluateRg004(repo, config, changed, endpoints.canonicalBaseSha);
+  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings];
   return {
     schemaVersion: 1,
     ok: findings.length === 0,

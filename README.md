@@ -40,4 +40,10 @@ The V1 command graph deliberately understands only `package.json` scripts, pnpm 
 Only jobs and steps explicitly registered as policy checks are hard-gated. Their registered steps must call an allowlisted central Action, CLI, or formal repository guard; unregistered `run` steps inside a formal policy job fail. Required guard files must exist and be reached through their exact configured entry.
 
 Normal build, environment preparation, and artifact-processing jobs may use multiline scripts. The CLI does not use regex heuristics to decide whether arbitrary YAML “looks like” a duplicate secret, size, or hygiene check; advisory Skills may flag such code for review without turning it into a deterministic failure.
+
+## Public command contracts (RG004)
+
+Each team-confirmed public entry records its manifest, command name, exact definition SHA-256, semantics, test tier, and contract-test/documentation/workflow consumers. `pnpm test`, `check:static`, and `tauri:build` are initializer examples only, not hard-coded global commands.
+
+Changing command text without updating its contract fails. Accepting new semantics also fails until the configured contract tests, documentation, and workflow consumers change in the same diff. This keeps a familiar command name from silently acquiring a different meaning.
 Deterministic repository governance for local hooks, Codex Skills, and GitHub Actions
