@@ -47,7 +47,7 @@ function help() {
   hooks uninstall
   github validate-waivers --event <json> --reviews <json> --report <json>
   github enforce --owner <owner> --repo <repo> --check <name> [--confirm]
-  install --bundle <verified-release-directory>
+  install --bundle <verified-release-directory-or-archive>
   skills install --source <skills-directory> [--replace]
   update --bundle <verified-directory>
   version [--json]`;

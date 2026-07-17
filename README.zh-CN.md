@@ -63,7 +63,7 @@ V1 的命令图刻意只支持 `package.json` scripts、pnpm workspace/filter/ru
 
 ## 发布与安装
 
-发布构建需要 Node.js 22.x，并为 CLI 和稳定 dispatcher 生成各平台的 Node SEA 可执行文件。发布产物包含 SHA-256 元数据和 GitHub artifact attestation，后者绑定到 `Andrewlislin/repo-governance`、`.github/workflows/release.yml`、源码提交以及每个 subject digest。经过 attestation 的发布 manifest 还会绑定确定性的 Skill-tree digest。如果 checksum 或 attestation 任一验证失败，安装都会失败；绝不单独信任 checksum。
+发布构建需要 Node.js 22.x，并为 CLI 和稳定 dispatcher 生成各平台的 Node SEA 可执行文件。GitHub Releases 每个平台只发布一个压缩包（Linux/macOS 使用 `.tar.gz`，Windows 使用 `.zip`），并附带顶层 `SHA256SUMS` 和 `release-index.json`；不使用 GitHub Packages。每个压缩包内部包含 CLI、dispatcher、Skills、内部 manifest 和平台内校验文件。发布产物包含 SHA-256 元数据和 GitHub artifact attestation，后者绑定到 `Andrewlislin/repo-governance`、`.github/workflows/release.yml`、源码提交、平台压缩包以及 release manifest。经过 attestation 的 release manifest 还会绑定确定性的 Skill-tree digest。如果 checksum 或 attestation 任一验证失败，安装都会失败；绝不单独信任 checksum。
 
 在 macOS/Linux 上，CLI/dispatcher 数据使用 `${XDG_DATA_HOME:-$HOME/.local/share}/repo-governance`；在 Windows 上使用 `%LOCALAPPDATA%/repo-governance`。Skills 使用 `${CODEX_HOME:-$HOME/.codex}/skills`。可选的 shareable-index 边界记录在 `adapters/` 下，绝不会成为公开项目的运行时依赖。
 

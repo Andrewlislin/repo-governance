@@ -39,6 +39,10 @@ jobs:
           cache: npm
       - name: Install and test
         run: npm ci && npm run check
+      - name: Read package version
+        id: package-version
+        shell: bash
+        run: echo "version=$(node -p \"JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version\")" >> "$GITHUB_OUTPUT"
       - name: Build self-contained executables
         run: npm run build:sea
         env:
@@ -48,23 +52,19 @@ jobs:
         env:
           REPO_GOVERNANCE_BUILD_SHA: ${{ github.sha }}
           REPO_GOVERNANCE_PLATFORM: ${{ matrix.platform }}
-      - name: Attest CLI executable
+      - name: Attest platform archive
         uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
         with:
-          subject-path: release/${{ matrix.platform }}/repo-governance${{ runner.os == 'Windows' && '.exe' || '' }}
-      - name: Attest stable dispatcher
+          subject-path: release/assets/${{ matrix.platform }}/repo-governance-v${{ steps.package-version.outputs.version }}-${{ matrix.platform }}${{ runner.os == 'Windows' && '.zip' || '.tar.gz' }}
+      - name: Attest release manifest
         uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
         with:
-          subject-path: release/${{ matrix.platform }}/dispatcher${{ runner.os == 'Windows' && '.exe' || '' }}
-      - name: Attest release manifest and Skill tree digest
-        uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
-        with:
-          subject-path: release/${{ matrix.platform }}/release-manifest.json
+          subject-path: release/assets/${{ matrix.platform }}/release-manifest.json
       - name: Upload platform bundle
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: repo-governance-${{ matrix.platform }}
-          path: release/${{ matrix.platform }}
+          path: release/assets/${{ matrix.platform }}
           if-no-files-found: error
 
   publish:
@@ -75,12 +75,26 @@ jobs:
       actions: read
       contents: write
     steps:
+      - name: Checkout release tooling
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22
       - name: Download attested platform bundles
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
           path: release
           pattern: repo-governance-*
+      - name: Write release index and top-level checksums
+        run: node scripts/write-release-index.mjs
+        env:
+          REPO_GOVERNANCE_RELEASE_SOURCE: release
+          REPO_GOVERNANCE_RELEASE_OUTPUT: release/final
       - name: Publish immutable GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/**/* --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" release/final/* --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
