@@ -10,10 +10,12 @@
     ],
     "command-contract": [
       "tests/rg004.test.mjs",
+      "tests/install-local.test.mjs",
       "tests/workflow-security.test.mjs"
     ],
     "build-verification": [
       "tests/release-install.test.mjs",
+      "tests/install-local.test.mjs",
       "tests/workflow-security.test.mjs"
     ]
   },

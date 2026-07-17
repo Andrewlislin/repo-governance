@@ -17,6 +17,19 @@ npm test
 npm run check:static
 ```
 
+## Source install
+
+For local development or agent-assisted setup:
+
+```sh
+git clone https://github.com/Andrewlislin/repo-governance.git
+cd repo-governance
+npm ci
+npm run install:local
+```
+
+This builds the local engine, installs it into the standard repo-governance data directory, and prints the next command for installing hooks.
+
 The installed pre-push hook is thin and offline. It invokes a stable dispatcher in the platform data directory; the dispatcher reads `engineCommitSha` from `.repo-governance.json`, verifies the locked executable, and then runs `repo-governance check`. Missing or corrupt engines fail with an explicit `repo-governance update` instruction.
 
 ## Initializing a future repository
