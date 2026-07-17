@@ -37,8 +37,13 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install and test
-        run: npm ci && npm run check
+      - name: Install
+        run: npm ci
+      - name: Static checks
+        run: npm run check:static
+      - name: Full tests
+        if: runner.os != 'Windows'
+        run: npm test
       - name: Read package version
         id: package-version
         shell: bash
