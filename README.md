@@ -46,4 +46,8 @@ Normal build, environment preparation, and artifact-processing jobs may use mult
 Each team-confirmed public entry records its manifest, command name, exact definition SHA-256, semantics, test tier, and contract-test/documentation/workflow consumers. `pnpm test`, `check:static`, and `tauri:build` are initializer examples only, not hard-coded global commands.
 
 Changing command text without updating its contract fails. Accepting new semantics also fails until the configured contract tests, documentation, and workflow consumers change in the same diff. This keeps a familiar command name from silently acquiring a different meaning.
+
+## Codex Skills
+
+The `skills/` directory contains five advisory Skills: governance bootstrap, change-to-test impact planning, test-tier classification, public-command protection, and CI failure triage. They read repository evidence and CLI JSON rather than reimplementing hard rules. CI triage always classifies a failure as `true-bug`, `stale-test`, `stale-workflow`, `wrong-ci-tier`, or `insufficient-evidence` before suggesting a fix.
 Deterministic repository governance for local hooks, Codex Skills, and GitHub Actions

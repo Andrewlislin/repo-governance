@@ -1,0 +1,4 @@
+interface:
+  display_name: "Triage CI Failure"
+  short_description: "Classify CI failures before proposing a minimal fix"
+  default_prompt: "Use $triage-ci-failure to classify this failed CI run before changing code."

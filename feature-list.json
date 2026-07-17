@@ -8,7 +8,7 @@
     {
       "id": "pr-2-rules-and-skills",
       "description": "RG002/RG003/RG004 and five Codex Skills",
-      "passes": false
+      "passes": true
     },
     {
       "id": "pr-3-github-and-release",

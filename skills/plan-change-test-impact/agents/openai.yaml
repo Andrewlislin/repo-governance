@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan Change Test Impact"
+  short_description: "Map code changes to concrete companion test work"
+  default_prompt: "Use $plan-change-test-impact to identify the tests this change should update."
