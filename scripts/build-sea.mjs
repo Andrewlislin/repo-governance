@@ -39,6 +39,9 @@ for (const target of [
   cpSync(process.execPath, executable);
   if (process.platform === "darwin") execFileSync("codesign", ["--remove-signature", executable]);
   const postject = join(root, "node_modules", ".bin", process.platform === "win32" ? "postject.cmd" : "postject");
-  execFileSync(postject, [executable, "NODE_SEA_BLOB", blob, "--sentinel-fuse", "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"], { stdio: "inherit" });
+  execFileSync(postject, [executable, "NODE_SEA_BLOB", blob, "--sentinel-fuse", "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"], {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
   if (process.platform === "darwin") execFileSync("codesign", ["--sign", "-", executable]);
 }
