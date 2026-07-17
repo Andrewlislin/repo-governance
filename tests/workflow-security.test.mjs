@@ -21,12 +21,16 @@ test("workflows never use pull_request_target and pin every external Action to a
 });
 
 test("reusable workflow fetches full history and separates comment permissions", () => {
-  const workflow = parse(readFileSync(join(root, ".github", "workflows", "governance.yml"), "utf8"));
+  const contents = readFileSync(join(root, ".github", "workflows", "governance.yml"), "utf8");
+  const workflow = parse(contents);
   assert.equal(workflow.jobs.governance.permissions.contents, "read");
   assert.equal(workflow.jobs.governance.permissions["pull-requests"], "read");
   assert.equal(workflow.jobs.governance.steps[0].with["fetch-depth"], 0);
   assert.equal(workflow.jobs.reporter.permissions["pull-requests"], "write");
   assert.equal(workflow.jobs.reporter.steps.some((step) => String(step.uses || "").startsWith("actions/checkout@")), false);
+  assert.match(contents, /job\.workflow_repository/);
+  assert.match(contents, /job\.workflow_sha/);
+  assert.doesNotMatch(contents, /github\.job_workflow_sha/);
 });
 
 test("thin caller pins reusable workflow to the same full engine commit", () => {

@@ -28,8 +28,8 @@ jobs:
       - name: Checkout the immutable governance engine
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          repository: Andrewlislin/repo-governance
-          ref: ${{ github.job_workflow_sha }}
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           path: .repo-governance-engine
           persist-credentials: false
       - name: Set up Node.js 22
@@ -56,7 +56,7 @@ jobs:
         env:
           RG_BASE_REF: refs/remotes/origin/${{ github.event.pull_request.base.ref }}
           RG_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          RG_ENGINE_SHA: ${{ github.job_workflow_sha }}
+          RG_ENGINE_SHA: ${{ job.workflow_sha }}
         run: |
           set +e
           REPO_GOVERNANCE_ENGINE_SHA="$RG_ENGINE_SHA" node .repo-governance-engine/bin/repo-governance.mjs check \
@@ -74,7 +74,7 @@ jobs:
         id: approvals
         shell: bash
         env:
-          RG_ENGINE_SHA: ${{ github.job_workflow_sha }}
+          RG_ENGINE_SHA: ${{ job.workflow_sha }}
         run: |
           set +e
           REPO_GOVERNANCE_ENGINE_SHA="$RG_ENGINE_SHA" node .repo-governance-engine/bin/repo-governance.mjs github validate-waivers \
