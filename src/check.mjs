@@ -3,6 +3,7 @@ import { changedPaths, resolveCanonicalBase } from "./git.mjs";
 import { evaluateRg001 } from "./rg001.mjs";
 import { applyLocalWaivers } from "./waiver.mjs";
 import { evaluateRg002 } from "./rg002.mjs";
+import { evaluateRg003 } from "./rg003.mjs";
 
 export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const config = readConfig(repo);
@@ -12,7 +13,8 @@ export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const rg001 = evaluateRg001(config, changed);
   const waived = applyLocalWaivers(repo, rg001.findings, endpoints.canonicalBaseSha, endpoints.headSha, now);
   const rg002 = evaluateRg002(repo, config);
-  const findings = [...waived.findings, ...rg002.findings];
+  const rg003 = evaluateRg003(repo, config);
+  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings];
   return {
     schemaVersion: 1,
     ok: findings.length === 0,

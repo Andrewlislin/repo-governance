@@ -53,6 +53,9 @@ export function baseConfig(overrides = {}) {
     testTiers: { "pr-blocking": [], nightly: [], "manual-smoke": [] },
     commandAliases: {},
     prBlockingCommands: [],
+    guards: [],
+    policyChecks: [],
+    workflowAllowedEntries: [],
     ...overrides,
   };
 }

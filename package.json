@@ -14,6 +14,7 @@
     "test": "node --test",
     "test:pr1": "node --test tests/config.test.mjs tests/dispatcher.test.mjs tests/fingerprint.test.mjs tests/hooks.test.mjs tests/init.test.mjs tests/rg001.test.mjs tests/update.test.mjs tests/waiver.test.mjs",
     "test:rg002": "node --test tests/rg002.test.mjs",
+    "test:rg003": "node --test tests/rg003.test.mjs",
     "check:static": "node --check bin/repo-governance.mjs && node scripts/check-sources.mjs",
     "check": "npm run check:static && npm test"
   },
@@ -27,5 +28,8 @@
     "schemas",
     "src",
     "templates"
-  ]
+  ],
+  "dependencies": {
+    "yaml": "2.8.1"
+  }
 }

@@ -34,4 +34,10 @@ The versioned configuration schema is in `schemas/repo-governance.schema.json`. 
 Executable test entries belong to exactly one of `pr-blocking`, `nightly`, or `manual-smoke`. Fixtures, mocks, helpers, setup modules, shared test utilities, and test data belong in `testSupport` and are not classified as standalone entries. A PR-blocking command may never reach a nightly or manual entry, even if that entry skips without a real secret.
 
 The V1 command graph deliberately understands only `package.json` scripts, pnpm workspace/filter/run calls, Bun scripts, configured Python/pytest entries, and explicit aliases. Dynamic composition, `eval`, Makefile dispatch, opaque shell scripts, and unknown indirect calls in a protected chain are configuration errors; the engine does not guess.
+
+## Workflow rule source (RG003)
+
+Only jobs and steps explicitly registered as policy checks are hard-gated. Their registered steps must call an allowlisted central Action, CLI, or formal repository guard; unregistered `run` steps inside a formal policy job fail. Required guard files must exist and be reached through their exact configured entry.
+
+Normal build, environment preparation, and artifact-processing jobs may use multiline scripts. The CLI does not use regex heuristics to decide whether arbitrary YAML “looks like” a duplicate secret, size, or hygiene check; advisory Skills may flag such code for review without turning it into a deterministic failure.
 Deterministic repository governance for local hooks, Codex Skills, and GitHub Actions
