@@ -42,6 +42,7 @@ jobs:
 
   governance:
     name: repo-governance-e2e
+    if: github.event_name == 'pull_request'
     uses: Andrewlislin/repo-governance/.github/workflows/governance.yml@23afe06776bdd9372cb6ccaf867f79e1e68fc853
     permissions:
       contents: read

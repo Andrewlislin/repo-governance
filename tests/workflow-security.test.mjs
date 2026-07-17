@@ -40,6 +40,12 @@ test("comment reporter is a separate write-capable reusable that never checks ou
   assert.match(caller, /pull-requests: write/);
 });
 
+test("central CI runs PR governance only on pull request events", () => {
+  const workflow = parse(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8"));
+  assert.equal(workflow.jobs.governance.if, "github.event_name == 'pull_request'");
+  assert.equal(workflow.jobs.test.if, undefined);
+});
+
 test("thin caller pins reusable workflow to the same full engine commit", () => {
   const sha = "a".repeat(40);
   const contents = thinWorkflow({ engineVersion: "1.0.0", engineCommitSha: sha });
