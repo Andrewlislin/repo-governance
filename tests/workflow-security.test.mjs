@@ -26,11 +26,18 @@ test("reusable workflow fetches full history and separates comment permissions",
   assert.equal(workflow.jobs.governance.permissions.contents, "read");
   assert.equal(workflow.jobs.governance.permissions["pull-requests"], "read");
   assert.equal(workflow.jobs.governance.steps[0].with["fetch-depth"], 0);
-  assert.equal(workflow.jobs.reporter.permissions["pull-requests"], "write");
-  assert.equal(workflow.jobs.reporter.steps.some((step) => String(step.uses || "").startsWith("actions/checkout@")), false);
   assert.match(contents, /job\.workflow_repository/);
   assert.match(contents, /job\.workflow_sha/);
   assert.doesNotMatch(contents, /github\.job_workflow_sha/);
+});
+
+test("comment reporter is a separate write-capable reusable that never checks out PR code", () => {
+  const reporter = parse(readFileSync(join(root, ".github", "workflows", "reporter.yml"), "utf8"));
+  assert.equal(reporter.jobs.reporter.permissions["pull-requests"], "write");
+  assert.equal(reporter.jobs.reporter.steps.some((step) => String(step.uses || "").startsWith("actions/checkout@")), false);
+  const caller = thinWorkflow({ engineVersion: "1.0.0", engineCommitSha: "a".repeat(40), comment: true });
+  assert.match(caller, /reporter\.yml@[0-9a-f]{40}/);
+  assert.match(caller, /pull-requests: write/);
 });
 
 test("thin caller pins reusable workflow to the same full engine commit", () => {

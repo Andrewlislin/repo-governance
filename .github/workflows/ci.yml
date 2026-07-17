@@ -30,5 +30,3 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-    with:
-      comment: false
