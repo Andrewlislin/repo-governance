@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { cpSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { basename, dirname, join, resolve } from "node:path";
 
-const root = resolve(new URL("..", import.meta.url).pathname);
+const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const sourceRoot = resolve(process.env.REPO_GOVERNANCE_RELEASE_SOURCE || join(root, "release"));
 const outputRoot = resolve(process.env.REPO_GOVERNANCE_RELEASE_OUTPUT || join(root, "release", "final"));
 mkdirSync(outputRoot, { recursive: true });

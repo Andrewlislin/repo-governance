@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
 
-const root = new URL("../skills", import.meta.url).pathname;
+const root = fileURLToPath(new URL("../skills", import.meta.url));
 const expected = [
   "bootstrap-repo-governance",
   "classify-test-tier",
