@@ -48,6 +48,11 @@ export function baseConfig(overrides = {}) {
     },
     highImpactMappings: [],
     managedFiles: [".repo-governance.json"],
+    testEntries: [],
+    testSupport: [],
+    testTiers: { "pr-blocking": [], nightly: [], "manual-smoke": [] },
+    commandAliases: {},
+    prBlockingCommands: [],
     ...overrides,
   };
 }

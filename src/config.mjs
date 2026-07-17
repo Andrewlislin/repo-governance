@@ -21,6 +21,12 @@ export function validateConfig(config, { identity = runtimeIdentity(), enforceEn
   expect(typeof config.defaultBranch === "string" && config.defaultBranch.length > 0, "defaultBranch is required.");
   expect(config.testCategories && typeof config.testCategories === "object", "testCategories is required.");
   expect(Array.isArray(config.highImpactMappings), "highImpactMappings must be an array.");
+  expect(config.testEntries === undefined || Array.isArray(config.testEntries), "testEntries must be an array of executable entries.");
+  expect(config.testSupport === undefined || Array.isArray(config.testSupport), "testSupport must be an array of fixture/helper patterns.");
+  if (config.testTiers !== undefined) {
+    expect(config.testTiers && typeof config.testTiers === "object", "testTiers must be an object.");
+    for (const tier of ["pr-blocking", "nightly", "manual-smoke"]) expect(Array.isArray(config.testTiers[tier]), `testTiers.${tier} must be an array.`);
+  }
 
   for (const [category, patterns] of Object.entries(config.testCategories)) {
     expect(Array.isArray(patterns) && patterns.every((item) => typeof item === "string" && item.length > 0), `Invalid paths for test category ${category}.`);

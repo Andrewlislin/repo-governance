@@ -28,4 +28,10 @@ repo-governance init --accept
 Installation is future-only. `hooks install` configures a Git template but never scans or mutates existing repositories. Existing global `init.templateDir` configuration is preserved unless the user explicitly requests `--compose`; conflicting files stop composition. Repositories that use Husky or another `core.hooksPath` retain their existing pre-push commands and receive an appended dispatcher call.
 
 The versioned configuration schema is in `schemas/repo-governance.schema.json`. Waivers live in `.repo-governance/waivers/*.json`, can apply only to `RG001`, exclude their own directory from the fixed business diff fingerprint, and never store a head SHA or approval state.
+
+## Test tiers (RG002)
+
+Executable test entries belong to exactly one of `pr-blocking`, `nightly`, or `manual-smoke`. Fixtures, mocks, helpers, setup modules, shared test utilities, and test data belong in `testSupport` and are not classified as standalone entries. A PR-blocking command may never reach a nightly or manual entry, even if that entry skips without a real secret.
+
+The V1 command graph deliberately understands only `package.json` scripts, pnpm workspace/filter/run calls, Bun scripts, configured Python/pytest entries, and explicit aliases. Dynamic composition, `eval`, Makefile dispatch, opaque shell scripts, and unknown indirect calls in a protected chain are configuration errors; the engine does not guess.
 Deterministic repository governance for local hooks, Codex Skills, and GitHub Actions
