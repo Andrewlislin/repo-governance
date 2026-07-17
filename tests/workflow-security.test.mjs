@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
 import { thinWorkflow } from "../src/workflow.mjs";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 
 test("workflows never use pull_request_target and pin every external Action to a full SHA", () => {
   for (const name of readdirSync(join(root, ".github", "workflows"))) {
@@ -58,6 +59,8 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   const contents = readFileSync(join(root, ".github", "workflows", "release.yml"), "utf8");
   const indexWriter = readFileSync(join(root, "scripts", "write-release-index.mjs"), "utf8");
   const sourceChecker = readFileSync(join(root, "scripts", "check-sources.mjs"), "utf8");
+  const seaBuilder = readFileSync(join(root, "scripts", "build-sea.mjs"), "utf8");
+  const releasePackager = readFileSync(join(root, "scripts", "package-release.mjs"), "utf8");
   assert.match(contents, /attest-build-provenance@[0-9a-f]{40}/);
   assert.match(contents, /package:release/);
   assert.match(contents, /id: package-version/);
@@ -70,5 +73,10 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   assert.doesNotMatch(contents, /gh release create "\$GITHUB_REF_NAME" release\/\*\*/);
   assert.match(indexWriter, /SHA256SUMS/);
   assert.match(sourceChecker, /fileURLToPath\(new URL\("\.\.\/src", import\.meta\.url\)\)/);
-  assert.doesNotMatch(sourceChecker, /new URL\("\.\.\/src", import\.meta\.url\)\.pathname/);
+  assert.match(seaBuilder, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
+  assert.match(releasePackager, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
+  assert.match(indexWriter, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
+  for (const script of [sourceChecker, seaBuilder, releasePackager, indexWriter]) {
+    assert.doesNotMatch(script, /new URL\([^)]+import\.meta\.url\)\.pathname/);
+  }
 });

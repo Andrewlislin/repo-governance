@@ -1,9 +1,10 @@
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { build } from "esbuild";
 
-const root = resolve(new URL("..", import.meta.url).pathname);
+const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 if (Number(process.versions.node.split(".")[0]) !== 22) throw new Error(`SEA release builds require Node.js 22.x; found ${process.version}.`);
 const dist = join(root, "dist");
 const version = process.env.REPO_GOVERNANCE_BUILD_VERSION || JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { basename, join } from "node:path";
 import test from "node:test";
 import { installReleaseBundle } from "../src/release-install.mjs";
@@ -167,7 +168,7 @@ test("release index writer publishes only platform archives and top-level checks
     }, null, 2)}\n`);
   }
   execFileSync("node", ["scripts/write-release-index.mjs"], {
-    cwd: new URL("..", import.meta.url).pathname,
+    cwd: fileURLToPath(new URL("..", import.meta.url)),
     env: { ...process.env, REPO_GOVERNANCE_RELEASE_SOURCE: source, REPO_GOVERNANCE_RELEASE_OUTPUT: output },
   });
   assert.ok(existsSync(join(output, "repo-governance-v1.0.0-linux-x64.tar.gz")));

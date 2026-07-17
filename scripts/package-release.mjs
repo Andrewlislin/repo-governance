@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { join, resolve } from "node:path";
 import { treeDigest } from "../src/tree-digest.mjs";
 
-const root = resolve(new URL("..", import.meta.url).pathname);
+const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const platform = process.env.REPO_GOVERNANCE_PLATFORM || `${process.platform}-${process.arch}`;
 const commitSha = process.env.REPO_GOVERNANCE_BUILD_SHA;
 if (!/^[0-9a-f]{40}$/.test(commitSha || "")) throw new Error("REPO_GOVERNANCE_BUILD_SHA must be the full source commit.");
