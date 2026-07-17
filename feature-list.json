@@ -1,0 +1,19 @@
+{
+  "features": [
+    {
+      "id": "pr-1-core",
+      "description": "Governance core, RG001/RG005, dispatcher, hooks, and controlled updates",
+      "passes": false
+    },
+    {
+      "id": "pr-2-rules-and-skills",
+      "description": "RG002/RG003/RG004 and five Codex Skills",
+      "passes": false
+    },
+    {
+      "id": "pr-3-github-and-release",
+      "description": "GitHub enforcement, reusable workflow, release, and supply-chain verification",
+      "passes": false
+    }
+  ]
+}
