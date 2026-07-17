@@ -57,10 +57,15 @@ test("thin caller pins reusable workflow to the same full engine commit", () => 
 
 test("release requires both checksum metadata and GitHub artifact attestation", () => {
   const contents = readFileSync(join(root, ".github", "workflows", "release.yml"), "utf8");
+  const workflow = parse(contents);
+  const steps = workflow.jobs.build.steps;
   const indexWriter = readFileSync(join(root, "scripts", "write-release-index.mjs"), "utf8");
   const sourceChecker = readFileSync(join(root, "scripts", "check-sources.mjs"), "utf8");
   const seaBuilder = readFileSync(join(root, "scripts", "build-sea.mjs"), "utf8");
   const releasePackager = readFileSync(join(root, "scripts", "package-release.mjs"), "utf8");
+  assert.ok(steps.some((step) => step.name === "Install" && step.run === "npm ci"));
+  assert.ok(steps.some((step) => step.name === "Static checks" && step.run === "npm run check:static"));
+  assert.ok(steps.some((step) => step.name === "Full tests" && step.if === "runner.os != 'Windows'" && step.run === "npm test"));
   assert.match(contents, /attest-build-provenance@[0-9a-f]{40}/);
   assert.match(contents, /package:release/);
   assert.match(contents, /id: package-version/);
