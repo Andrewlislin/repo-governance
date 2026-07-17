@@ -1,5 +1,7 @@
 # repo-governance
 
+[English](./README.md) | [简体中文](./README.zh-CN.md)
+
 Deterministic repository governance shared by local Git hooks, Codex Skills, and GitHub Actions. The project is intentionally split into a hard, explainable CLI rule engine and advisory Skills. The same version-pinned engine is used locally and in CI.
 
 ## Capability boundary
