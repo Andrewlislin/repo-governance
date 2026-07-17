@@ -79,6 +79,7 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   assert.match(indexWriter, /SHA256SUMS/);
   assert.match(sourceChecker, /fileURLToPath\(new URL\("\.\.\/src", import\.meta\.url\)\)/);
   assert.match(seaBuilder, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
+  assert.match(seaBuilder, /shell: process\.platform === "win32"/);
   assert.match(releasePackager, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
   assert.match(indexWriter, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
   for (const script of [sourceChecker, seaBuilder, releasePackager, indexWriter]) {
