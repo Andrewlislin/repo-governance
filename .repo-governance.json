@@ -9,7 +9,8 @@
       "tests/**"
     ],
     "command-contract": [
-      "tests/rg004.test.mjs"
+      "tests/rg004.test.mjs",
+      "tests/workflow-security.test.mjs"
     ],
     "build-verification": [
       "tests/release-install.test.mjs",
