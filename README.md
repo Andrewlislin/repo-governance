@@ -28,4 +28,26 @@ repo-governance init --accept
 Installation is future-only. `hooks install` configures a Git template but never scans or mutates existing repositories. Existing global `init.templateDir` configuration is preserved unless the user explicitly requests `--compose`; conflicting files stop composition. Repositories that use Husky or another `core.hooksPath` retain their existing pre-push commands and receive an appended dispatcher call.
 
 The versioned configuration schema is in `schemas/repo-governance.schema.json`. Waivers live in `.repo-governance/waivers/*.json`, can apply only to `RG001`, exclude their own directory from the fixed business diff fingerprint, and never store a head SHA or approval state.
+
+## Test tiers (RG002)
+
+Executable test entries belong to exactly one of `pr-blocking`, `nightly`, or `manual-smoke`. Fixtures, mocks, helpers, setup modules, shared test utilities, and test data belong in `testSupport` and are not classified as standalone entries. A PR-blocking command may never reach a nightly or manual entry, even if that entry skips without a real secret.
+
+The V1 command graph deliberately understands only `package.json` scripts, pnpm workspace/filter/run calls, Bun scripts, configured Python/pytest entries, and explicit aliases. Dynamic composition, `eval`, Makefile dispatch, opaque shell scripts, and unknown indirect calls in a protected chain are configuration errors; the engine does not guess.
+
+## Workflow rule source (RG003)
+
+Only jobs and steps explicitly registered as policy checks are hard-gated. Their registered steps must call an allowlisted central Action, CLI, or formal repository guard; unregistered `run` steps inside a formal policy job fail. Required guard files must exist and be reached through their exact configured entry.
+
+Normal build, environment preparation, and artifact-processing jobs may use multiline scripts. The CLI does not use regex heuristics to decide whether arbitrary YAML “looks like” a duplicate secret, size, or hygiene check; advisory Skills may flag such code for review without turning it into a deterministic failure.
+
+## Public command contracts (RG004)
+
+Each team-confirmed public entry records its manifest, command name, exact definition SHA-256, semantics, test tier, and contract-test/documentation/workflow consumers. `pnpm test`, `check:static`, and `tauri:build` are initializer examples only, not hard-coded global commands.
+
+Changing command text without updating its contract fails. Accepting new semantics also fails until the configured contract tests, documentation, and workflow consumers change in the same diff. This keeps a familiar command name from silently acquiring a different meaning.
+
+## Codex Skills
+
+The `skills/` directory contains five advisory Skills: governance bootstrap, change-to-test impact planning, test-tier classification, public-command protection, and CI failure triage. They read repository evidence and CLI JSON rather than reimplementing hard rules. CI triage always classifies a failure as `true-bug`, `stale-test`, `stale-workflow`, `wrong-ci-tier`, or `insufficient-evidence` before suggesting a fix.
 Deterministic repository governance for local hooks, Codex Skills, and GitHub Actions

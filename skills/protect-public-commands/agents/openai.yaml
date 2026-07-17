@@ -1,0 +1,4 @@
+interface:
+  display_name: "Protect Public Commands"
+  short_description: "Review command semantics and every declared consumer"
+  default_prompt: "Use $protect-public-commands to review this public command change and its consumers."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Classify Test Tier"
+  short_description: "Place executable tests in the correct CI tier"
+  default_prompt: "Use $classify-test-tier to recommend the correct tier for this new test entry."
