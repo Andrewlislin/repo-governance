@@ -1,5 +1,7 @@
 # repo-governance
 
+[English](./README.md) | [简体中文](./README.zh-CN.md)
+
 Deterministic repository governance shared by local Git hooks, Codex Skills, and GitHub Actions. The project is intentionally split into a hard, explainable CLI rule engine and advisory Skills. The same version-pinned engine is used locally and in CI.
 
 ## Capability boundary
@@ -50,4 +52,18 @@ Changing command text without updating its contract fails. Accepting new semanti
 ## Codex Skills
 
 The `skills/` directory contains five advisory Skills: governance bootstrap, change-to-test impact planning, test-tier classification, public-command protection, and CI failure triage. They read repository evidence and CLI JSON rather than reimplementing hard rules. CI triage always classifies a failure as `true-bug`, `stale-test`, `stale-workflow`, `wrong-ci-tier`, or `insufficient-evidence` before suggesting a fix.
+
+## GitHub enforcement and waiver approvals
+
+Future repositories receive one thin `pull_request` caller pinned to the same full commit as `engineCommitSha`. The reusable workflow checks out the live untrusted head, fetches complete target history, computes merge-base itself, and runs the same CLI. It never uses `pull_request_target`. Core checks have only `contents: read` and `pull-requests: read`; optional comments run in a separate job that does not checkout or execute PR code.
+
+Remote RG005 validation reads live reviews. The latest review by an allowed approver must be `APPROVED` and its `commit_id` must equal the live PR head SHA. Any later commit invalidates the approval, including a waiver-only commit; business changes also invalidate the fixed diff fingerprint.
+
+`repo-governance github enforce` performs a read-only capability, permission, branch-protection, and ruleset preflight. Without `--confirm` it never writes. Missing administration permission or an active ruleset conflict returns `blocked`; a confirmed change is successful only after readback contains the required check.
+
+## Release and installation
+
+Release builds require Node.js 22.x and produce per-platform Node SEA executables for the CLI and stable dispatcher. Published artifacts include SHA-256 metadata and GitHub artifact attestations bound to `Andrewlislin/repo-governance`, `.github/workflows/release.yml`, the source commit, and each subject digest. The attested release manifest also binds the deterministic Skill-tree digest. Installation fails if either checksum or attestation verification fails; checksum alone is never accepted.
+
+CLI/dispatcher data uses `${XDG_DATA_HOME:-$HOME/.local/share}/repo-governance` on macOS/Linux and `%LOCALAPPDATA%/repo-governance` on Windows. Skills use `${CODEX_HOME:-$HOME/.codex}/skills`. The optional shareable-index boundary is documented under `adapters/` and is never a public runtime dependency.
 Deterministic repository governance for local hooks, Codex Skills, and GitHub Actions

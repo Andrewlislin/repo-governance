@@ -13,9 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
       - name: Set up Node.js 22
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22
           cache: npm
@@ -23,3 +23,26 @@ jobs:
         run: npm ci
       - name: Static checks and tests
         run: npm run check
+      - name: Build self-contained CLI and dispatcher
+        run: npm run build:sea
+      - name: Verify executables without PATH or a global Node runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          cli="$PWD/dist/repo-governance"
+          dispatcher="$PWD/dist/dispatcher"
+          env PATH= "$cli" version --json
+          temporary_repository="$(mktemp -d)"
+          set +e
+          dispatcher_output="$(cd "$temporary_repository" && env PATH= "$dispatcher" 2>&1)"
+          dispatcher_status=$?
+          set -e
+          test "$dispatcher_status" = "2"
+          test "$dispatcher_output" = "Repository is not initialized. Run repo-governance init before the first push."
+
+  governance:
+    name: repo-governance-e2e
+    uses: Andrewlislin/repo-governance/.github/workflows/governance.yml@23afe06776bdd9372cb6ccaf867f79e1e68fc853
+    permissions:
+      contents: read
+      pull-requests: read

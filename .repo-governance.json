@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "engineVersion": "1.0.0",
+  "engineCommitSha": "23afe06776bdd9372cb6ccaf867f79e1e68fc853",
+  "diffFingerprintAlgorithm": "git-raw-z-v1-sha256",
+  "defaultBranch": "main",
+  "testCategories": {
+    "governance": [
+      "tests/**"
+    ],
+    "command-contract": [
+      "tests/rg004.test.mjs",
+      "tests/workflow-security.test.mjs"
+    ],
+    "build-verification": [
+      "tests/release-install.test.mjs",
+      "tests/workflow-security.test.mjs"
+    ]
+  },
+  "highImpactMappings": [
+    {
+      "businessPaths": [
+        "src/**",
+        "bin/**",
+        "schemas/**",
+        "action/**",
+        ".github/workflows/**",
+        "templates/**",
+        "skills/**",
+        "adapters/**"
+      ],
+      "requirements": [
+        {
+          "anyOf": [
+            "governance"
+          ]
+        }
+      ]
+    },
+    {
+      "businessPaths": [
+        "package.json",
+        "scripts/build-sea.mjs",
+        "scripts/package-release.mjs"
+      ],
+      "requirements": [
+        {
+          "anyOf": [
+            "command-contract"
+          ]
+        },
+        {
+          "anyOf": [
+            "build-verification"
+          ]
+        }
+      ]
+    }
+  ],
+  "testEntries": [
+    {
+      "id": "all-tests",
+      "type": "command",
+      "command": "node --test",
+      "node": "package.json#test"
+    }
+  ],
+  "testSupport": [
+    "tests/helpers.mjs"
+  ],
+  "testTiers": {
+    "pr-blocking": [
+      "all-tests"
+    ],
+    "nightly": [],
+    "manual-smoke": []
+  },
+  "commandManifests": [
+    "package.json"
+  ],
+  "pythonTestEntries": [],
+  "commandAliases": {},
+  "prBlockingCommands": [
+    "package.json#test"
+  ],
+  "publicCommands": [
+    {
+      "id": "npm-test",
+      "manifest": "package.json",
+      "command": "test",
+      "definitionHash": "03760148d5da49bf284add8ea0418241736819f8d60f056efc4d48d04d9e62ef",
+      "semantics": "Run every deterministic repository test used as the PR-blocking verification suite.",
+      "tier": "pr-blocking",
+      "consumers": {
+        "contractTests": [
+          "tests/**"
+        ],
+        "docs": [
+          "README.md"
+        ],
+        "workflows": [
+          ".github/workflows/**"
+        ]
+      }
+    },
+    {
+      "id": "static-check",
+      "manifest": "package.json",
+      "command": "check:static",
+      "definitionHash": "eaeebd14e4264333f2660697eabdefd693ff263d37f83026a508149b654da749",
+      "semantics": "Parse every CLI and source module with Node.js before executing tests.",
+      "tier": "pr-blocking",
+      "consumers": {
+        "contractTests": [
+          "tests/**"
+        ],
+        "docs": [
+          "README.md"
+        ],
+        "workflows": [
+          ".github/workflows/**"
+        ]
+      }
+    },
+    {
+      "id": "sea-build",
+      "manifest": "package.json",
+      "command": "build:sea",
+      "definitionHash": "56344ba8b5c5fcf2c20906f5a61da5a7a34e26a8cfc59131a2046d238d565604",
+      "semantics": "Build the CLI and stable dispatcher as self-contained platform executables with Node.js 22 SEA.",
+      "tier": "pr-blocking",
+      "consumers": {
+        "contractTests": [
+          "tests/release-install.test.mjs",
+          "tests/workflow-security.test.mjs"
+        ],
+        "docs": [
+          "README.md"
+        ],
+        "workflows": [
+          ".github/workflows/release.yml"
+        ]
+      }
+    }
+  ],
+  "guards": [],
+  "policyChecks": [],
+  "workflowAllowedEntries": [
+    "uses:Andrewlislin/repo-governance/.github/workflows/governance.yml@23afe06776bdd9372cb6ccaf867f79e1e68fc853",
+    "uses:Andrewlislin/repo-governance/.github/workflows/reporter.yml@23afe06776bdd9372cb6ccaf867f79e1e68fc853"
+  ],
+  "waiverApprovers": [
+    "Andrewlislin"
+  ],
+  "managedFiles": [
+    ".repo-governance.json",
+    ".github/workflows/ci.yml"
+  ]
+}

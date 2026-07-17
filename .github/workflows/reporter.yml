@@ -1,0 +1,32 @@
+name: Reusable Repo Governance Reporter
+
+on:
+  workflow_call:
+    inputs:
+      report-artifact:
+        description: Artifact produced by the read-only governance workflow
+        required: true
+        type: string
+
+jobs:
+  reporter:
+    name: repo-governance-reporter
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Download validated report only
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: ${{ inputs.report-artifact }}
+      - name: Post sanitized summary without executing PR code
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('repo-governance-report.json', 'utf8'));
+            const clean = (value) => String(value).replace(/[\u0000-\u001f`<>]/g, ' ').slice(0, 300);
+            const lines = (report.findings || []).slice(0, 20).map((finding) => `- ${clean(finding.rule)}: ${clean(finding.message)}`);
+            const body = [`Repo governance: **${report.ok ? 'passed' : 'failed'}**`, ...lines].join('\n');
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });

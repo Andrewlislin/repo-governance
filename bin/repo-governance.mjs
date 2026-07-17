@@ -2,4 +2,6 @@
 
 import { main } from "../src/cli.mjs";
 
-process.exitCode = await main(process.argv.slice(2));
+main(process.argv.slice(2)).then((exitCode) => {
+  process.exitCode = exitCode;
+});

@@ -8,6 +8,11 @@ import { createWaiver } from "./waiver.mjs";
 import { controlledUpdate } from "./update.mjs";
 import { readConfig } from "./config.mjs";
 import { runtimeIdentity } from "./version.mjs";
+import { readFileSync } from "node:fs";
+import { validateRemoteWaiverApprovals } from "./github/waiver-approval.mjs";
+import { githubEnforce } from "./github/enforce.mjs";
+import { installReleaseBundle } from "./release-install.mjs";
+import { installSkills } from "./skills-install.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -40,6 +45,10 @@ function help() {
   hooks install --dispatcher <verified-file> [--compose]
   hooks doctor
   hooks uninstall
+  github validate-waivers --event <json> --reviews <json> --report <json>
+  github enforce --owner <owner> --repo <repo> --check <name> [--confirm]
+  install --bundle <verified-release-directory>
+  skills install --source <skills-directory> [--replace]
   update --bundle <verified-directory>
   version [--json]`;
 }
@@ -62,6 +71,27 @@ export async function main(argv, context = {}) {
       emit(json ? identity : `${identity.version} (${identity.commitSha})`, json, stdout);
       return 0;
     }
+    if (command === "github" && subcommand === "enforce") {
+      const result = await githubEnforce({
+        owner: parsed.flags.owner,
+        repo: parsed.flags.repo,
+        checkName: parsed.flags.check,
+        token: env.GITHUB_TOKEN,
+        confirm: Boolean(parsed.flags.confirm),
+      });
+      emit(result, json, result.status === "blocked" ? stderr : stdout);
+      return result.status === "blocked" ? 2 : 0;
+    }
+    if (command === "install") {
+      if (!parsed.flags.bundle) throw new GovernanceError("--bundle is required.", { code: "RG_INVOCATION" });
+      emit(installReleaseBundle(parsed.flags.bundle, { env }), json, stdout);
+      return 0;
+    }
+    if (command === "skills" && subcommand === "install") {
+      if (!parsed.flags.source) throw new GovernanceError("--source is required.", { code: "RG_INVOCATION" });
+      emit(installSkills(parsed.flags.source, { env, replace: Boolean(parsed.flags.replace) }), json, stdout);
+      return 0;
+    }
     if (command === "hooks" && subcommand === "install") {
       const result = installFutureHooks({ compose: Boolean(parsed.flags.compose), env, dispatcherSource: parsed.flags.dispatcher });
       emit(result, json, stdout);
@@ -72,6 +102,17 @@ export async function main(argv, context = {}) {
       return 0;
     }
     const repo = repositoryRoot(cwd);
+    if (command === "github" && subcommand === "validate-waivers") {
+      for (const flag of ["event", "reviews", "report"]) if (!parsed.flags[flag]) throw new GovernanceError(`--${flag} is required.`, { code: "RG_INVOCATION" });
+      const result = validateRemoteWaiverApprovals({
+        event: JSON.parse(readFileSync(parsed.flags.event, "utf8")),
+        reviews: JSON.parse(readFileSync(parsed.flags.reviews, "utf8")),
+        report: JSON.parse(readFileSync(parsed.flags.report, "utf8")),
+        config: readConfig(repo),
+      });
+      emit(result, json, stdout);
+      return 0;
+    }
     if (command === "init") {
       const result = initializeRepository(repo, { accept: Boolean(parsed.flags.accept), defaultBranch: parsed.flags["default-branch"] || "main" });
       if (result.written) result.hook = connectEffectiveRepositoryHook(repo, { env });

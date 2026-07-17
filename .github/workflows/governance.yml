@@ -1,0 +1,103 @@
+name: Reusable Repo Governance
+
+on:
+  workflow_call:
+    outputs:
+      report-artifact:
+        description: Name of the Schema-validated report artifact
+        value: ${{ jobs.governance.outputs.report-artifact }}
+
+jobs:
+  governance:
+    name: repo-governance
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      report-artifact: ${{ steps.artifact-name.outputs.name }}
+    steps:
+      - name: Checkout untrusted PR head with complete history
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout the immutable governance engine
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .repo-governance-engine
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22
+      - name: Fetch and prove canonical history
+        shell: bash
+        env:
+          RG_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          RG_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "+refs/heads/$RG_BASE_REF:refs/remotes/origin/$RG_BASE_REF"
+          git cat-file -e "$RG_HEAD_SHA^{commit}"
+          canonical_base="$(git merge-base "refs/remotes/origin/$RG_BASE_REF" "$RG_HEAD_SHA")"
+          git cat-file -e "$canonical_base^{commit}"
+          git merge-base --is-ancestor "$canonical_base" "$RG_HEAD_SHA"
+      - name: Install immutable engine dependencies
+        run: npm ci --ignore-scripts --prefix .repo-governance-engine
+      - name: Run local-equivalent governance check
+        id: check
+        shell: bash
+        env:
+          RG_BASE_REF: refs/remotes/origin/${{ github.event.pull_request.base.ref }}
+          RG_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RG_ENGINE_SHA: ${{ job.workflow_sha }}
+        run: |
+          set +e
+          REPO_GOVERNANCE_ENGINE_SHA="$RG_ENGINE_SHA" node .repo-governance-engine/bin/repo-governance.mjs check \
+            --base "$RG_BASE_REF" --head "$RG_HEAD_SHA" --json > repo-governance-report.json 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          node -e 'JSON.parse(require("fs").readFileSync("repo-governance-report.json", "utf8"))'
+          exit 0
+      - name: Read live PR approvals
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RG_PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh api "/repos/$GITHUB_REPOSITORY/pulls/$RG_PR_NUMBER/reviews?per_page=100" > repo-governance-reviews.json
+      - name: Validate current-head waiver approvals
+        id: approvals
+        shell: bash
+        env:
+          RG_ENGINE_SHA: ${{ job.workflow_sha }}
+        run: |
+          set +e
+          REPO_GOVERNANCE_ENGINE_SHA="$RG_ENGINE_SHA" node .repo-governance-engine/bin/repo-governance.mjs github validate-waivers \
+            --event "$GITHUB_EVENT_PATH" --reviews repo-governance-reviews.json --report repo-governance-report.json --json \
+            > repo-governance-approval.json 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Select report artifact name
+        id: artifact-name
+        run: echo "name=repo-governance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+      - name: Upload structured reports
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: |
+            repo-governance-report.json
+            repo-governance-approval.json
+          if-no-files-found: error
+      - name: Enforce results
+        shell: bash
+        env:
+          RG_CHECK_STATUS: ${{ steps.check.outputs.status }}
+          RG_APPROVAL_STATUS: ${{ steps.approvals.outputs.status }}
+        run: |
+          test "$RG_CHECK_STATUS" = "0"
+          test "$RG_APPROVAL_STATUS" = "0"

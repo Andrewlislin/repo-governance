@@ -13,7 +13,7 @@
     {
       "id": "pr-3-github-and-release",
       "description": "GitHub enforcement, reusable workflow, release, and supply-chain verification",
-      "passes": false
+      "passes": true
     }
   ]
 }
