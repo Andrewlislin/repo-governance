@@ -1,0 +1,39 @@
+name: Repo Governance Check
+description: Run the version-pinned repository governance engine against an explicit base and head
+inputs:
+  base-ref:
+    description: Trusted target repository base ref
+    required: true
+  head-sha:
+    description: Live pull request head SHA
+    required: true
+  engine-commit-sha:
+    description: Full commit SHA used to load this Action and lock the engine
+    required: true
+  report-path:
+    description: JSON report output path
+    required: false
+    default: repo-governance-report.json
+outputs:
+  report-path:
+    description: Path to the structured report
+    value: ${{ inputs.report-path }}
+runs:
+  using: composite
+  steps:
+    - name: Install pinned engine dependencies
+      shell: bash
+      run: npm ci --ignore-scripts --prefix "$GITHUB_ACTION_PATH/.."
+    - name: Run pinned governance engine
+      shell: bash
+      env:
+        RG_BASE_REF: ${{ inputs.base-ref }}
+        RG_HEAD_SHA: ${{ inputs.head-sha }}
+        RG_ENGINE_SHA: ${{ inputs.engine-commit-sha }}
+        RG_REPORT: ${{ inputs.report-path }}
+      run: |
+        set -euo pipefail
+        REPO_GOVERNANCE_ENGINE_SHA="$RG_ENGINE_SHA" node "$GITHUB_ACTION_PATH/../bin/repo-governance.mjs" check \
+          --base "$RG_BASE_REF" \
+          --head "$RG_HEAD_SHA" \
+          --json > "$RG_REPORT" 2>&1

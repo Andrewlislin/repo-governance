@@ -1,6 +1,6 @@
 {
   "name": "@andrewlislin/repo-governance",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Deterministic repository governance shared by local hooks, Codex Skills, and GitHub Actions",
   "type": "module",
   "private": false,
@@ -8,7 +8,7 @@
     "repo-governance": "bin/repo-governance.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "scripts": {
     "test": "node --test",
@@ -17,8 +17,13 @@
     "test:rg003": "node --test tests/rg003.test.mjs",
     "test:rg004": "node --test tests/rg004.test.mjs",
     "test:skills": "node --test tests/skills.test.mjs",
+    "test:github": "node --test tests/github-waiver.test.mjs tests/github-enforce.test.mjs",
+    "test:release": "node --test tests/release-install.test.mjs tests/workflow-security.test.mjs",
+    "test:git-fixtures": "node --test tests/git-history.test.mjs tests/fingerprint-fixtures.test.mjs",
     "check:static": "node --check bin/repo-governance.mjs && node scripts/check-sources.mjs",
-    "check": "npm run check:static && npm test"
+    "check": "npm run check:static && npm test",
+    "build:sea": "node scripts/build-sea.mjs",
+    "package:release": "node scripts/package-release.mjs"
   },
   "license": "MIT",
   "repository": {
@@ -33,5 +38,9 @@
   ],
   "dependencies": {
     "yaml": "2.8.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1",
+    "postject": "1.0.0-alpha.6"
   }
 }

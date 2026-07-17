@@ -2,8 +2,14 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const sourceRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const packageJson = JSON.parse(readFileSync(join(sourceRoot, "package.json"), "utf8"));
+function developmentVersion() {
+  try {
+    const sourceRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+    return JSON.parse(readFileSync(join(sourceRoot, "package.json"), "utf8")).version;
+  } catch {
+    return "0.0.0-development";
+  }
+}
 
 export function runtimeIdentity(executablePath = process.execPath) {
   const manifestPath = join(dirname(executablePath), "engine-manifest.json");
@@ -12,7 +18,8 @@ export function runtimeIdentity(executablePath = process.execPath) {
     return { version: manifest.engineVersion, commitSha: manifest.engineCommitSha };
   }
   return {
-    version: packageJson.version,
-    commitSha: process.env.REPO_GOVERNANCE_ENGINE_SHA || "development",
+    version: typeof REPO_GOVERNANCE_BUILD_VERSION !== "undefined" ? REPO_GOVERNANCE_BUILD_VERSION : developmentVersion(),
+    commitSha: process.env.REPO_GOVERNANCE_ENGINE_SHA
+      || (typeof REPO_GOVERNANCE_BUILD_SHA !== "undefined" ? REPO_GOVERNANCE_BUILD_SHA : "development"),
   };
 }

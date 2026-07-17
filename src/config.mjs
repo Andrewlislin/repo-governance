@@ -17,6 +17,7 @@ export function validateConfig(config, { identity = runtimeIdentity(), enforceEn
   expect(config.schemaVersion === 1, "Unsupported schemaVersion; expected 1.");
   expect(typeof config.engineVersion === "string" && config.engineVersion.length > 0, "engineVersion is required.");
   expect(typeof config.engineCommitSha === "string" && config.engineCommitSha.length > 0, "engineCommitSha is required.");
+  expect(config.engineCommitSha === "development" || /^[0-9a-f]{40}$/.test(config.engineCommitSha), "engineCommitSha must be development or a full 40-character commit SHA.");
   expect(config.diffFingerprintAlgorithm === DIFF_FINGERPRINT_ALGORITHM, `diffFingerprintAlgorithm must be ${DIFF_FINGERPRINT_ALGORITHM}.`);
   expect(typeof config.defaultBranch === "string" && config.defaultBranch.length > 0, "defaultBranch is required.");
   expect(config.testCategories && typeof config.testCategories === "object", "testCategories is required.");

@@ -1,0 +1,130 @@
+name: Reusable Repo Governance
+
+on:
+  workflow_call:
+    inputs:
+      comment:
+        description: Post a sanitized summary from a separate non-executing reporter job
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  governance:
+    name: repo-governance
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      report-artifact: ${{ steps.artifact-name.outputs.name }}
+    steps:
+      - name: Checkout untrusted PR head with complete history
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout the immutable governance engine
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: Andrewlislin/repo-governance
+          ref: ${{ github.job_workflow_sha }}
+          path: .repo-governance-engine
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Fetch and prove canonical history
+        shell: bash
+        env:
+          RG_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          RG_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "+refs/heads/$RG_BASE_REF:refs/remotes/origin/$RG_BASE_REF"
+          git cat-file -e "$RG_HEAD_SHA^{commit}"
+          canonical_base="$(git merge-base "refs/remotes/origin/$RG_BASE_REF" "$RG_HEAD_SHA")"
+          git cat-file -e "$canonical_base^{commit}"
+          git merge-base --is-ancestor "$canonical_base" "$RG_HEAD_SHA"
+      - name: Install immutable engine dependencies
+        run: npm ci --ignore-scripts --prefix .repo-governance-engine
+      - name: Run local-equivalent governance check
+        id: check
+        shell: bash
+        env:
+          RG_BASE_REF: refs/remotes/origin/${{ github.event.pull_request.base.ref }}
+          RG_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RG_ENGINE_SHA: ${{ github.job_workflow_sha }}
+        run: |
+          set +e
+          REPO_GOVERNANCE_ENGINE_SHA="$RG_ENGINE_SHA" node .repo-governance-engine/bin/repo-governance.mjs check \
+            --base "$RG_BASE_REF" --head "$RG_HEAD_SHA" --json > repo-governance-report.json 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          node -e 'JSON.parse(require("fs").readFileSync("repo-governance-report.json", "utf8"))'
+          exit 0
+      - name: Read live PR approvals
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RG_PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh api "/repos/$GITHUB_REPOSITORY/pulls/$RG_PR_NUMBER/reviews?per_page=100" > repo-governance-reviews.json
+      - name: Validate current-head waiver approvals
+        id: approvals
+        shell: bash
+        env:
+          RG_ENGINE_SHA: ${{ github.job_workflow_sha }}
+        run: |
+          set +e
+          REPO_GOVERNANCE_ENGINE_SHA="$RG_ENGINE_SHA" node .repo-governance-engine/bin/repo-governance.mjs github validate-waivers \
+            --event "$GITHUB_EVENT_PATH" --reviews repo-governance-reviews.json --report repo-governance-report.json --json \
+            > repo-governance-approval.json 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Select report artifact name
+        id: artifact-name
+        run: echo "name=repo-governance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+      - name: Upload structured reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: |
+            repo-governance-report.json
+            repo-governance-approval.json
+          if-no-files-found: error
+      - name: Enforce results
+        shell: bash
+        env:
+          RG_CHECK_STATUS: ${{ steps.check.outputs.status }}
+          RG_APPROVAL_STATUS: ${{ steps.approvals.outputs.status }}
+        run: |
+          test "$RG_CHECK_STATUS" = "0"
+          test "$RG_APPROVAL_STATUS" = "0"
+
+  reporter:
+    name: repo-governance-reporter
+    if: ${{ always() && inputs.comment && github.event_name == 'pull_request' }}
+    needs: governance
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: none
+      pull-requests: write
+    steps:
+      - name: Download validated report only
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ needs.governance.outputs.report-artifact }}
+      - name: Post sanitized summary without executing PR code
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('repo-governance-report.json', 'utf8'));
+            const clean = (value) => String(value).replace(/[\u0000-\u001f`<>]/g, ' ').slice(0, 300);
+            const lines = (report.findings || []).slice(0, 20).map((finding) => `- ${clean(finding.rule)}: ${clean(finding.message)}`);
+            const body = [`Repo governance: **${report.ok ? 'passed' : 'failed'}**`, ...lines].join('\n');
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });

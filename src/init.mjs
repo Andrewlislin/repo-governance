@@ -5,6 +5,7 @@ import { writeConfig } from "./config.mjs";
 import { DIFF_FINGERPRINT_ALGORITHM } from "./fingerprint.mjs";
 import { runtimeIdentity } from "./version.mjs";
 import { commandDefinitionHash } from "./rg004.mjs";
+import { THIN_WORKFLOW_PATH, writeThinWorkflow } from "./workflow.mjs";
 
 export function detectCandidates(repo) {
   const candidates = { ecosystems: [], manifests: [], commands: [] };
@@ -49,8 +50,9 @@ export function initializeRepository(repo, { accept = false, defaultBranch = "ma
     policyChecks: [],
     workflowAllowedEntries: [],
     waiverApprovers: [],
-    managedFiles: [".repo-governance.json"],
+    managedFiles: [".repo-governance.json", THIN_WORKFLOW_PATH],
   };
   writeConfig(repo, config);
-  return { written: true, candidates, config };
+  const workflow = writeThinWorkflow(repo, identity);
+  return { written: true, candidates, config, workflow };
 }

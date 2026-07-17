@@ -10,12 +10,21 @@
     "diffFingerprintAlgorithm",
     "defaultBranch",
     "highImpactMappings",
-    "testCategories"
+    "testCategories",
+    "testEntries",
+    "testSupport",
+    "testTiers",
+    "commandAliases",
+    "publicCommands",
+    "guards",
+    "policyChecks",
+    "workflowAllowedEntries",
+    "waiverApprovers"
   ],
   "properties": {
     "schemaVersion": { "const": 1 },
     "engineVersion": { "type": "string", "minLength": 1 },
-    "engineCommitSha": { "type": "string", "minLength": 1 },
+    "engineCommitSha": { "type": "string", "pattern": "^(development|[0-9a-f]{40})$" },
     "diffFingerprintAlgorithm": { "const": "git-raw-z-v1-sha256" },
     "defaultBranch": { "type": "string", "minLength": 1 },
     "testCategories": {
@@ -45,6 +54,63 @@
           }
         }
       }
-    }
+    },
+    "testEntries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "type": { "enum": ["file", "command"] },
+          "path": { "type": "string" },
+          "command": { "type": "string" },
+          "node": { "type": "string" }
+        }
+      }
+    },
+    "testSupport": { "type": "array", "items": { "type": "string" } },
+    "testTiers": {
+      "type": "object",
+      "required": ["pr-blocking", "nightly", "manual-smoke"],
+      "properties": {
+        "pr-blocking": { "type": "array", "items": { "type": "string" } },
+        "nightly": { "type": "array", "items": { "type": "string" } },
+        "manual-smoke": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "commandAliases": {
+      "type": "object",
+      "additionalProperties": { "type": "array", "items": { "type": "string" } }
+    },
+    "publicCommands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "manifest", "command", "definitionHash", "semantics", "tier", "consumers"],
+        "properties": {
+          "id": { "type": "string" },
+          "manifest": { "type": "string" },
+          "command": { "type": "string" },
+          "definitionHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "semantics": { "type": "string", "minLength": 1 },
+          "tier": { "enum": ["pr-blocking", "nightly", "manual-smoke"] },
+          "consumers": {
+            "type": "object",
+            "required": ["contractTests", "docs", "workflows"],
+            "properties": {
+              "contractTests": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+              "docs": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+              "workflows": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "guards": { "type": "array", "items": { "type": "object" } },
+    "policyChecks": { "type": "array", "items": { "type": "object" } },
+    "workflowAllowedEntries": { "type": "array", "items": { "type": "string" } },
+    "waiverApprovers": { "type": "array", "items": { "type": "string" } },
+    "managedFiles": { "type": "array", "items": { "type": "string" } }
   }
 }
