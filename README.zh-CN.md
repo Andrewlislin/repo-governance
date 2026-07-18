@@ -58,6 +58,16 @@ repo-governance clone https://example.com/team/project.git --preset node-service
 
 本工具绝不会拦截原生 `git clone`。只有显式使用 `repo-governance clone` 才会获得组合流程。
 
+## 准备 Pull Request
+
+提交完计划纳入 PR 的全部变更后，运行确定性预检：
+
+```sh
+repo-governance prepare-pr --json
+```
+
+`prepare-pr` 要求工作区干净，并把普通 `check` 结果投影为 RG001–RG005 分组、必要测试证据、workflow findings、命令契约 findings 和 Markdown PR body 草稿。它不会创建 PR、调用 `gh`、发表评论或写入 GitHub。报告始终保留 RG001 能力边界：存在配套测试类别证据不代表语义覆盖已经验证。
+
 ## 手工初始化未来仓库
 
 ```sh

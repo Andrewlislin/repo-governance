@@ -16,6 +16,7 @@ import { installSkills } from "./skills-install.mjs";
 import { bootstrapRepository } from "./bootstrap.mjs";
 import { newRepository } from "./new.mjs";
 import { cloneRepository } from "./clone.mjs";
+import { preparePullRequest } from "./prepare-pr.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -46,6 +47,7 @@ function help() {
   bootstrap --preset <preset> [--default-branch <branch>] [--json]
   new <name> --preset <preset> [--default-branch <branch>] [--json]
   clone <repo> [directory] --preset <preset> [--default-branch <branch>] [--json]
+  prepare-pr [--base <ref>] [--json]
   check [--base <ref>] [--head <ref>] [--json]
   waiver create --name <name> --paths <a,b> --reason <text> --expires <ISO> [--base <ref>]
   hooks install --dispatcher <verified-file> [--compose]
@@ -133,6 +135,11 @@ export async function main(argv, context = {}) {
       return result.exitCode;
     }
     const repo = repositoryRoot(cwd);
+    if (command === "prepare-pr") {
+      const result = preparePullRequest(repo, { base: parsed.flags.base, env });
+      emit(result, json, result.ok ? stdout : stderr);
+      return result.exitCode;
+    }
     if (command === "bootstrap") {
       const result = bootstrapRepository(repo, {
         presetName: parsed.flags.preset,

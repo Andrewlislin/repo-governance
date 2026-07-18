@@ -20,3 +20,7 @@ This model deliberately does not:
 `repo-governance clone <repo> [directory] --preset <name>` passes the repository argument directly to `git clone`, preserves source history, and enters the same adoption flow. GitHub is not required for local Hook and CLI governance. For a non-GitHub origin, the generated GitHub Actions caller is reported as a template whose provider applicability has not been confirmed.
 
 Both commands reject pre-existing destinations. If an operation fails, cleanup is limited to the exact destination that the command verified did not exist and then created.
+
+## Pull request preparation
+
+`repo-governance prepare-pr` reads only the committed merge-base-to-HEAD diff. A staged, unstaged, or untracked change blocks the command so its result cannot silently diverge from the future PR. The command projects the raw check JSON into stable report fields and a Markdown draft; it does not add rule findings or write remote state.

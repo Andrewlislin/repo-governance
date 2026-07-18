@@ -41,3 +41,10 @@ test("missing or damaged locked engine fails without downloading", () => {
   assert.equal(result.exitCode, 2);
   assert.match(result.message, /checksum.*invalid/i);
 });
+
+test("first push from an uninitialized repository names the explicit bootstrap entry", () => {
+  const repo = initGitRepo();
+  const result = dispatch({ cwd: repo, env: process.env, argv: ["pre-push"] });
+  assert.equal(result.exitCode, 2);
+  assert.match(result.message, /bootstrap --preset <preset>/);
+});

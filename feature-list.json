@@ -28,7 +28,7 @@
     {
       "id": "v1.1-pr-3-prepare-pr",
       "description": "Deterministic prepare-pr reporting and clearer first-push diagnostics",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.1-pr-4-playbooks-codex",

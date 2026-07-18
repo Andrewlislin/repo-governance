@@ -58,6 +58,16 @@ repo-governance clone https://example.com/team/project.git --preset node-service
 
 Native `git clone` is never intercepted. Developers must use `repo-governance clone` to receive the combined flow.
 
+## Preparing a Pull Request
+
+Run the deterministic PR preflight after committing all intended changes:
+
+```sh
+repo-governance prepare-pr --json
+```
+
+`prepare-pr` requires a clean worktree and projects the normal `check` result into RG001–RG005 groups, required test evidence, workflow findings, command-contract findings, and a Markdown PR body draft. It does not open a PR, call `gh`, comment, or write GitHub state. The report always preserves the RG001 boundary: companion test-category evidence does not prove semantic coverage.
+
 ## Manual initialization of a future repository
 
 ```sh

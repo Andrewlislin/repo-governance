@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import test from "node:test";
 import { main } from "../src/cli.mjs";
-import { commitAll, initGitRepo, temporaryDirectory, write } from "./helpers.mjs";
+import { baseConfig, commitAll, git, initGitRepo, temporaryDirectory, write, writeConfig } from "./helpers.mjs";
 
 const identity = { version: "1.1.0", commitSha: "a".repeat(40) };
 
@@ -69,4 +69,23 @@ test("new CLI parses its public arguments and emits the shared automation envelo
   assert.equal(report.command, "new");
   assert.equal(report.initialized, true);
   assert.match(report.initialCommit, /^[0-9a-f]{40}$/);
+});
+
+test("prepare-pr CLI emits the projected check result without remote writes", async () => {
+  const repo = initGitRepo();
+  writeConfig(repo, baseConfig());
+  write(join(repo, "README.md"), "# Baseline\n");
+  commitAll(repo, "initial");
+  git(repo, ["checkout", "-b", "feature"]);
+  write(join(repo, "README.md"), "# Feature\n");
+  commitAll(repo, "feature");
+  const stdout = sink();
+  const stderr = sink();
+  const code = await main(["prepare-pr", "--json"], { cwd: repo, stdout: stdout.stream, stderr: stderr.stream });
+  assert.equal(code, 0);
+  assert.equal(stderr.value(), "");
+  const report = JSON.parse(stdout.value());
+  assert.equal(report.command, "prepare-pr");
+  assert.equal(report.summary.status, "ready");
+  assert.equal(report.sourceCheckResult.mode, "standard");
 });

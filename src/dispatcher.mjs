@@ -23,7 +23,7 @@ function digest(path) {
 export function dispatch({ cwd = process.cwd(), argv = [], env = process.env, platform = process.platform } = {}) {
   const repo = findRepository(cwd);
   if (!repo) {
-    return { exitCode: 2, message: "Repository is not initialized. Run repo-governance init before the first push." };
+    return { exitCode: 2, message: "Repository is not initialized. Run repo-governance bootstrap --preset <preset> before the first push." };
   }
   const config = JSON.parse(readFileSync(join(repo, ".repo-governance.json"), "utf8"));
   const executableName = platform === "win32" ? "repo-governance.exe" : "repo-governance";
