@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "name": "node-library",
+  "description": "Node.js library with public package commands and distributable build output.",
+  "requiredSelectors": [],
+  "optionalSelectors": [
+    { "id": "package", "type": "file", "path": "package.json" },
+    { "id": "test-command", "type": "package-script", "manifest": "package.json", "command": "test" },
+    { "id": "static-command", "type": "package-script", "manifest": "package.json", "command": "check:static" },
+    { "id": "build-command", "type": "package-script", "manifest": "package.json", "command": "build" }
+  ],
+  "testCategories": {
+    "unit": ["tests/unit/**", "test/**", "tests/**/*.test.js", "tests/**/*.test.mjs", "tests/**/*.test.ts"],
+    "contract": ["tests/contract/**"],
+    "command-contract": ["tests/commands/**"],
+    "build-verification": ["tests/build/**"]
+  },
+  "highImpactMappings": [
+    { "businessPaths": ["src/**", "bin/**"], "requirements": [{ "anyOf": ["unit", "contract"] }] },
+    { "businessPaths": ["package.json", "scripts/**"], "requirements": [{ "anyOf": ["command-contract"] }, { "anyOf": ["build-verification"] }] }
+  ],
+  "testEntries": [],
+  "testSupport": ["tests/fixtures/**", "tests/helpers/**"],
+  "testTiers": { "pr-blocking": [], "nightly": [], "manual-smoke": [] },
+  "commandAliases": {},
+  "publicCommandCandidates": [
+    { "id": "test", "selector": "test-command", "manifest": "package.json", "command": "test", "semantics": "Runs the repository's default deterministic test suite.", "tier": "pr-blocking", "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } },
+    { "id": "check-static", "selector": "static-command", "manifest": "package.json", "command": "check:static", "semantics": "Runs the repository's deterministic static checks.", "tier": "pr-blocking", "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } },
+    { "id": "build", "selector": "build-command", "manifest": "package.json", "command": "build", "semantics": "Builds the distributable library artifacts.", "tier": "pr-blocking", "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } }
+  ],
+  "workflowAllowedEntryTemplates": ["uses:Andrewlislin/repo-governance/.github/workflows/governance.yml@{engineCommitSha}"],
+  "hookStrategy": "connect-effective-pre-push",
+  "ciCaller": { "provider": "github-actions", "commentReporter": false }
+}

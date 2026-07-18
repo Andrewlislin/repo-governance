@@ -20,6 +20,12 @@ export function validateConfig(config, { identity = runtimeIdentity(), enforceEn
   expect(config.engineCommitSha === "development" || /^[0-9a-f]{40}$/.test(config.engineCommitSha), "engineCommitSha must be development or a full 40-character commit SHA.");
   expect(config.diffFingerprintAlgorithm === DIFF_FINGERPRINT_ALGORITHM, `diffFingerprintAlgorithm must be ${DIFF_FINGERPRINT_ALGORITHM}.`);
   expect(typeof config.defaultBranch === "string" && config.defaultBranch.length > 0, "defaultBranch is required.");
+  if (config.preset !== undefined) {
+    expect(config.preset && typeof config.preset === "object", "preset must be an object.");
+    expect(typeof config.preset.name === "string" && config.preset.name.length > 0, "preset.name is required.");
+    expect(config.preset.schemaVersion === 1, "preset.schemaVersion must be 1.");
+    expect(/^[0-9a-f]{64}$/.test(config.preset.sha256 || ""), "preset.sha256 must be a lowercase SHA-256 digest.");
+  }
   expect(config.testCategories && typeof config.testCategories === "object", "testCategories is required.");
   expect(Array.isArray(config.highImpactMappings), "highImpactMappings must be an array.");
   expect(config.testEntries === undefined || Array.isArray(config.testEntries), "testEntries must be an array of executable entries.");
@@ -32,6 +38,7 @@ export function validateConfig(config, { identity = runtimeIdentity(), enforceEn
   expect(config.policyChecks === undefined || Array.isArray(config.policyChecks), "policyChecks must be an array.");
   expect(config.workflowAllowedEntries === undefined || Array.isArray(config.workflowAllowedEntries), "workflowAllowedEntries must be an array.");
   expect(config.publicCommands === undefined || Array.isArray(config.publicCommands), "publicCommands must be an array.");
+  expect(config.prBlockingCommands === undefined || Array.isArray(config.prBlockingCommands), "prBlockingCommands must be an array.");
   for (const command of config.publicCommands || []) {
     expect(typeof command.id === "string" && typeof command.manifest === "string" && typeof command.command === "string", "Each public command needs id, manifest, and command.");
     expect(/^[0-9a-f]{64}$/.test(command.definitionHash || ""), `Public command ${command.id} needs a lowercase SHA-256 definitionHash.`);

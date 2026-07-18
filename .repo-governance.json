@@ -28,6 +28,8 @@
         "action/**",
         ".github/workflows/**",
         "templates/**",
+        "presets/**",
+        "playbooks/**",
         "skills/**",
         "adapters/**"
       ],

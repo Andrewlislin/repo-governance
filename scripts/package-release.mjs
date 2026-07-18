@@ -45,6 +45,8 @@ function createArchive(archivePath) {
 const cli = copyWithDigest("repo-governance");
 const dispatcher = copyWithDigest("dispatcher");
 cpSync(join(root, "skills"), join(staging, "skills"), { recursive: true });
+cpSync(join(root, "presets"), join(staging, "policy-assets", "presets"), { recursive: true });
+cpSync(join(root, "schemas"), join(staging, "policy-assets", "schemas"), { recursive: true });
 const manifest = {
   schemaVersion: 1,
   engineVersion: version,
@@ -56,6 +58,7 @@ const manifest = {
   cli,
   dispatcher,
   skillsSha256: treeDigest(join(staging, "skills")),
+  policyAssetsSha256: treeDigest(join(staging, "policy-assets")),
   attestationRequired: true,
 };
 writeFileSync(join(staging, "release-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);

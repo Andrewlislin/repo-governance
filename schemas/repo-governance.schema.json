@@ -23,6 +23,15 @@
   ],
   "properties": {
     "schemaVersion": { "const": 1 },
+    "preset": {
+      "type": "object",
+      "required": ["name", "schemaVersion", "sha256"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "schemaVersion": { "const": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
     "engineVersion": { "type": "string", "minLength": 1 },
     "engineCommitSha": { "type": "string", "pattern": "^(development|[0-9a-f]{40})$" },
     "diffFingerprintAlgorithm": { "const": "git-raw-z-v1-sha256" },
@@ -83,6 +92,7 @@
       "type": "object",
       "additionalProperties": { "type": "array", "items": { "type": "string" } }
     },
+    "prBlockingCommands": { "type": "array", "items": { "type": "string" } },
     "publicCommands": {
       "type": "array",
       "items": {

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Andrewlislin/repo-governance/schemas/preset.schema.json",
+  "title": "repo-governance preset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "name",
+    "description",
+    "requiredSelectors",
+    "optionalSelectors",
+    "testCategories",
+    "highImpactMappings",
+    "testEntries",
+    "testSupport",
+    "testTiers",
+    "commandAliases",
+    "publicCommandCandidates",
+    "workflowAllowedEntryTemplates",
+    "hookStrategy",
+    "ciCaller"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]+$" },
+    "description": { "type": "string", "minLength": 1 },
+    "requiredSelectors": { "$ref": "#/$defs/selectors" },
+    "optionalSelectors": { "$ref": "#/$defs/selectors" },
+    "testCategories": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 }
+      }
+    },
+    "highImpactMappings": { "type": "array", "items": { "type": "object" } },
+    "testEntries": { "type": "array", "items": { "type": "object" } },
+    "testSupport": { "type": "array", "items": { "type": "string" } },
+    "testTiers": {
+      "type": "object",
+      "required": ["pr-blocking", "nightly", "manual-smoke"],
+      "properties": {
+        "pr-blocking": { "type": "array", "items": { "type": "string" } },
+        "nightly": { "type": "array", "items": { "type": "string" } },
+        "manual-smoke": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "commandAliases": { "type": "object" },
+    "publicCommandCandidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "selector", "manifest", "command", "semantics", "tier", "consumers"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "selector": { "type": "string", "minLength": 1 },
+          "manifest": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "minLength": 1 },
+          "semantics": { "type": "string", "minLength": 1 },
+          "tier": { "enum": ["pr-blocking", "nightly", "manual-smoke"] },
+          "advisory": { "type": "boolean" },
+          "consumers": {
+            "type": "object",
+            "required": ["contractTests", "docs", "workflows"]
+          }
+        }
+      }
+    },
+    "workflowAllowedEntryTemplates": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^([^{}]|\\{engineCommitSha\\})*$"
+      }
+    },
+    "hookStrategy": { "const": "connect-effective-pre-push" },
+    "ciCaller": {
+      "type": "object",
+      "required": ["provider", "commentReporter"],
+      "properties": {
+        "provider": { "const": "github-actions" },
+        "commentReporter": { "const": false }
+      }
+    }
+  },
+  "$defs": {
+    "selectors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "oneOf": [
+          {
+            "properties": {
+              "type": { "const": "file" },
+              "path": { "type": "string", "minLength": 1 }
+            },
+            "required": ["path"]
+          },
+          {
+            "properties": {
+              "type": { "const": "package-script" },
+              "manifest": { "const": "package.json" },
+              "command": { "type": "string", "minLength": 1 }
+            },
+            "required": ["manifest", "command"]
+          }
+        ]
+      }
+    }
+  }
+}

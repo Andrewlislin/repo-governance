@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "name": "tauri-desktop",
+  "description": "Tauri desktop application with frontend, Rust integration, and packaging boundaries.",
+  "requiredSelectors": [],
+  "optionalSelectors": [
+    { "id": "package", "type": "file", "path": "package.json" },
+    { "id": "test-command", "type": "package-script", "manifest": "package.json", "command": "test" },
+    { "id": "static-command", "type": "package-script", "manifest": "package.json", "command": "check:static" },
+    { "id": "build-command", "type": "package-script", "manifest": "package.json", "command": "tauri:build" }
+  ],
+  "testCategories": {
+    "unit": ["tests/unit/**", "src/**/*.test.ts", "src/**/*.test.tsx"],
+    "frontend": ["tests/frontend/**", "tests/e2e/**"],
+    "integration": ["tests/integration/**", "src-tauri/tests/**"],
+    "command-contract": ["tests/commands/**"],
+    "build-verification": ["tests/build/**"]
+  },
+  "highImpactMappings": [
+    { "businessPaths": ["src/**"], "requirements": [{ "anyOf": ["frontend", "unit"] }] },
+    { "businessPaths": ["src-tauri/src/**"], "requirements": [{ "anyOf": ["integration"] }] },
+    { "businessPaths": ["src-tauri/tauri.conf.json", "src-tauri/Cargo.toml", "package.json"], "requirements": [{ "anyOf": ["command-contract"] }, { "anyOf": ["build-verification"] }] }
+  ],
+  "testEntries": [],
+  "testSupport": ["tests/fixtures/**", "tests/helpers/**"],
+  "testTiers": { "pr-blocking": [], "nightly": [], "manual-smoke": [] },
+  "commandAliases": {},
+  "publicCommandCandidates": [
+    { "id": "test", "selector": "test-command", "manifest": "package.json", "command": "test", "semantics": "Runs deterministic desktop application tests.", "tier": "pr-blocking", "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } },
+    { "id": "check-static", "selector": "static-command", "manifest": "package.json", "command": "check:static", "semantics": "Runs deterministic frontend and Rust static checks.", "tier": "pr-blocking", "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } },
+    { "id": "tauri-build", "selector": "build-command", "manifest": "package.json", "command": "tauri:build", "semantics": "Builds packaged Tauri desktop artifacts.", "tier": "pr-blocking", "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } }
+  ],
+  "workflowAllowedEntryTemplates": ["uses:Andrewlislin/repo-governance/.github/workflows/governance.yml@{engineCommitSha}"],
+  "hookStrategy": "connect-effective-pre-push",
+  "ciCaller": { "provider": "github-actions", "commentReporter": false }
+}

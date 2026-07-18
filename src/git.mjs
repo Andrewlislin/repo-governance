@@ -62,6 +62,18 @@ export function changedPaths(repo, baseSha, headSha) {
     .filter(Boolean);
 }
 
+export function repositorySnapshotPaths(repo) {
+  const result = runGit([
+    "-c", "core.quotepath=false",
+    "ls-files", "--cached", "--others", "--exclude-standard", "-z",
+  ], { cwd: repo, binary: true });
+  return result.stdout
+    .toString("utf8")
+    .split("\0")
+    .filter((path) => path && !path.startsWith(".repo-governance/waivers/"))
+    .sort((left, right) => Buffer.from(left).compare(Buffer.from(right)));
+}
+
 export function trackedChanges(repo, paths) {
   if (paths.length === 0) return [];
   const result = runGit(["status", "--porcelain", "--", ...paths], { cwd: repo });

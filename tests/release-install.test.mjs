@@ -22,6 +22,8 @@ function bundle(overrides = {}) {
   write(join(root, cliName), cli, 0o755);
   write(join(root, dispatcherName), dispatcher, 0o755);
   write(join(root, "skills", "example-skill", "SKILL.md"), "---\nname: example-skill\ndescription: Example installation fixture used for release tests.\n---\n");
+  write(join(root, "policy-assets", "presets", "example.json"), "{}\n");
+  write(join(root, "policy-assets", "schemas", "example.schema.json"), "{}\n");
   const manifest = {
     schemaVersion: 1,
     engineVersion: "1.0.0",
@@ -32,6 +34,7 @@ function bundle(overrides = {}) {
     cli: { file: cliName, sha256: digest(cli) },
     dispatcher: { file: dispatcherName, sha256: digest(dispatcher) },
     skillsSha256: treeDigest(join(root, "skills")),
+    policyAssetsSha256: treeDigest(join(root, "policy-assets")),
     attestationRequired: true,
     ...overrides,
   };
@@ -126,6 +129,12 @@ test("tampered installed Skill content is rejected through the attested manifest
   const fixture = bundle();
   write(join(fixture.root, "skills", "example-skill", "SKILL.md"), "tampered\n");
   assert.throws(() => installReleaseBundle(fixture.root, { env: isolatedEnv(), verifyAttestation: () => true }), /Skill tree digest/);
+});
+
+test("tampered preset or schema content is rejected through the policy asset digest", () => {
+  const fixture = bundle();
+  write(join(fixture.root, "policy-assets", "presets", "example.json"), "tampered\n");
+  assert.throws(() => installReleaseBundle(fixture.root, { env: isolatedEnv(), verifyAttestation: () => true }), /policy asset digest/);
 });
 
 for (const overrides of [

@@ -32,7 +32,20 @@ This builds the local engine, installs it into the standard repo-governance data
 
 The installed pre-push hook is thin and offline. It invokes a stable dispatcher in the platform data directory; the dispatcher reads `engineCommitSha` from `.repo-governance.json`, verifies the locked executable, and then runs `repo-governance check`. Missing or corrupt engines fail with an explicit `repo-governance update` instruction.
 
-## Initializing a future repository
+## Quick Start for Existing Repositories
+
+Install a verified, version-pinned release first, then run one explicit adoption command:
+
+```sh
+cd existing-repository
+repo-governance bootstrap --preset node-library --json
+```
+
+`bootstrap` validates the selected static preset, writes `.repo-governance.json` and the thin GitHub Actions caller, composes the repository's effective pre-push hook, and runs an adoption check. It never overwrites existing governance configuration. Any failed adoption restores the previous Hook and removes files created by the attempt.
+
+Available presets are `node-library`, `node-service`, `react-web`, `tauri-desktop`, and `python-service`. See [Preset reference](docs/presets.md) and [Adoption model](docs/adoption-model.md).
+
+## Manual initialization of a future repository
 
 ```sh
 repo-governance init --json

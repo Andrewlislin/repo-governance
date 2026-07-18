@@ -18,7 +18,7 @@
     {
       "id": "v1.1-pr-1-bootstrap-presets",
       "description": "Preset-driven bootstrap, adoption checks, hook connection, and stable automation reports",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.1-pr-2-new-clone",

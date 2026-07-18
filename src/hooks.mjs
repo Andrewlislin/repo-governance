@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { GovernanceError } from "./errors.mjs";
 import { governanceDataRoot } from "./paths.mjs";
@@ -112,19 +112,48 @@ export function uninstallFutureHooks({ env = process.env } = {}) {
   return { restoredTemplate: manifest.previousTemplate };
 }
 
-export function connectEffectiveRepositoryHook(repo, { env = process.env } = {}) {
-  const result = runGit(["config", "--show-origin", "--get", "core.hooksPath"], { cwd: repo, env, allowFailure: true });
-  if (result.status !== 0) return { mode: "git-template", changed: false };
-  const line = result.stdout.trim();
-  const hooksPath = line.split(/\s+/).at(-1);
-  const absolute = resolve(repo, hooksPath);
-  const prePush = join(absolute, "pre-push");
+export function effectiveRepositoryHook(repo, { env = process.env } = {}) {
+  const result = runGit(["config", "--get", "core.hooksPath"], { cwd: repo, env, allowFailure: true });
+  if (result.status === 0) {
+    const hooksPath = result.stdout.trim();
+    return {
+      mode: hooksPath.includes("husky") ? "husky" : "custom-hooks-path",
+      path: join(resolve(repo, hooksPath), "pre-push"),
+    };
+  }
+  const native = runGit(["rev-parse", "--git-path", "hooks/pre-push"], { cwd: repo, env });
+  const path = native.stdout.trim();
+  return { mode: "native", path: resolve(repo, path) };
+}
+
+export function snapshotEffectiveRepositoryHook(repo, { env = process.env } = {}) {
+  const target = effectiveRepositoryHook(repo, { env });
+  if (existsSync(target.path)) {
+    const stat = lstatSync(target.path);
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new GovernanceError("Effective pre-push hook is not a regular file; refusing composition.", { code: "RG_HOOKS_CONFLICT", details: { path: target.path } });
+    return { ...target, existed: true, contents: readFileSync(target.path), modeBits: stat.mode, parentExisted: true };
+  }
+  return { ...target, existed: false, contents: null, modeBits: null, parentExisted: existsSync(dirname(target.path)) };
+}
+
+export function restoreEffectiveRepositoryHook(snapshot) {
+  if (snapshot.existed) writeFileSync(snapshot.path, snapshot.contents, { mode: snapshot.modeBits });
+  else {
+    rmSync(snapshot.path, { force: true });
+    if (!snapshot.parentExisted && existsSync(dirname(snapshot.path)) && readdirSync(dirname(snapshot.path)).length === 0) rmdirSync(dirname(snapshot.path));
+  }
+}
+
+export function connectEffectiveRepositoryHook(repo, { env = process.env, requireDispatcher = false } = {}) {
+  const target = snapshotEffectiveRepositoryHook(repo, { env });
   const dataRoot = governanceDataRoot(env);
-  const current = existsSync(prePush) ? readFileSync(prePush, "utf8") : "#!/bin/sh\n";
-  if (current.includes(MARKER)) return { mode: hooksPath.includes("husky") ? "husky" : "custom-hooks-path", changed: false };
-  mkdirSync(dirname(prePush), { recursive: true });
-  writeFileSync(prePush, `${current.trimEnd()}\n${dispatcherInvocation(dataRoot)}\n`, { mode: 0o755 });
-  return { mode: hooksPath.includes("husky") ? "husky" : "custom-hooks-path", changed: true };
+  const dispatcher = join(dataRoot, "dispatcher");
+  if (requireDispatcher && !existsSync(dispatcher)) throw new GovernanceError("Stable dispatcher is missing; install a verified repo-governance release before bootstrap.", { code: "RG_HOOKS_DISPATCHER", details: { dispatcher } });
+  const current = target.existed ? target.contents.toString("utf8") : "#!/bin/sh\n";
+  if (current.includes(MARKER)) return { mode: target.mode, changed: false, path: target.path };
+  mkdirSync(dirname(target.path), { recursive: true });
+  writeFileSync(target.path, `${current.trimEnd()}\n${dispatcherInvocation(dataRoot)}\n`, { mode: 0o755 });
+  return { mode: target.mode, changed: true, path: target.path };
 }
 
 export function doctorHooks(repo, { env = process.env } = {}) {
@@ -147,8 +176,12 @@ export function doctorHooks(repo, { env = process.env } = {}) {
       issues.push(`Effective core.hooksPath (${hooksResult.stdout.trim()}) does not reach the stable dispatcher. Run repo-governance init --accept to repair it.`);
     }
   } else {
-    const globalTemplate = configValue(["--global", "--get", "init.templateDir"], { env });
-    if (!globalTemplate || !existsSync(join(globalTemplate, "hooks", "pre-push"))) issues.push("No effective repository hook or governance Git template was found.");
+    const native = effectiveRepositoryHook(repo, { env });
+    const nativeConnected = existsSync(native.path) && readFileSync(native.path, "utf8").includes(MARKER);
+    if (!nativeConnected) {
+      const globalTemplate = configValue(["--global", "--get", "init.templateDir"], { env });
+      if (!globalTemplate || !existsSync(join(globalTemplate, "hooks", "pre-push"))) issues.push("No effective repository hook or governance Git template was found.");
+    }
   }
   return { ok: issues.length === 0, issues, dispatcher };
 }

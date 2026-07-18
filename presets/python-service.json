@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "name": "python-service",
+  "description": "Python service with unit, contract, integration, and build boundaries.",
+  "requiredSelectors": [],
+  "optionalSelectors": [
+    { "id": "pyproject", "type": "file", "path": "pyproject.toml" },
+    { "id": "pytest", "type": "file", "path": "pytest.ini" },
+    { "id": "dockerfile", "type": "file", "path": "Dockerfile" }
+  ],
+  "testCategories": {
+    "unit": ["tests/unit/**"],
+    "contract": ["tests/contract/**"],
+    "integration": ["tests/integration/**"],
+    "command-contract": ["tests/commands/**"],
+    "build-verification": ["tests/build/**"]
+  },
+  "highImpactMappings": [
+    { "businessPaths": ["src/**", "app/**"], "requirements": [{ "anyOf": ["unit", "contract", "integration"] }] },
+    { "businessPaths": ["migrations/**"], "requirements": [{ "anyOf": ["integration"] }] },
+    { "businessPaths": ["pyproject.toml", "Dockerfile"], "requirements": [{ "anyOf": ["command-contract"] }, { "anyOf": ["build-verification"] }] }
+  ],
+  "testEntries": [],
+  "testSupport": ["tests/fixtures/**", "tests/helpers/**", "tests/conftest.py"],
+  "testTiers": { "pr-blocking": [], "nightly": [], "manual-smoke": [] },
+  "commandAliases": {},
+  "publicCommandCandidates": [
+    { "id": "pytest", "selector": "pyproject", "manifest": "pyproject.toml", "command": "pytest -q", "semantics": "Runs the deterministic Python test suite.", "tier": "pr-blocking", "advisory": true, "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } },
+    { "id": "python-static", "selector": "pyproject", "manifest": "pyproject.toml", "command": "ruff check .", "semantics": "Runs deterministic Python static checks.", "tier": "pr-blocking", "advisory": true, "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } },
+    { "id": "python-build", "selector": "pyproject", "manifest": "pyproject.toml", "command": "python -m build", "semantics": "Builds Python distribution artifacts.", "tier": "pr-blocking", "advisory": true, "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } }
+  ],
+  "workflowAllowedEntryTemplates": ["uses:Andrewlislin/repo-governance/.github/workflows/governance.yml@{engineCommitSha}"],
+  "hookStrategy": "connect-effective-pre-push",
+  "ciCaller": { "provider": "github-actions", "commentReporter": false }
+}

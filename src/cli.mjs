@@ -13,6 +13,7 @@ import { validateRemoteWaiverApprovals } from "./github/waiver-approval.mjs";
 import { githubEnforce } from "./github/enforce.mjs";
 import { installReleaseBundle } from "./release-install.mjs";
 import { installSkills } from "./skills-install.mjs";
+import { bootstrapRepository } from "./bootstrap.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -40,6 +41,7 @@ function emit(payload, json = false, stream = process.stdout) {
 function help() {
   return `repo-governance commands:
   init [--accept] [--default-branch main] [--json]
+  bootstrap --preset <preset> [--default-branch <branch>] [--json]
   check [--base <ref>] [--head <ref>] [--json]
   waiver create --name <name> --paths <a,b> --reason <text> --expires <ISO> [--base <ref>]
   hooks install --dispatcher <verified-file> [--compose]
@@ -61,6 +63,7 @@ export async function main(argv, context = {}) {
   const parsed = parse(argv);
   const [command, subcommand] = parsed.positional;
   const json = Boolean(parsed.flags.json);
+  const automationCommand = ["bootstrap", "new", "clone", "prepare-pr"].includes(command);
   try {
     if (!command || command === "help" || parsed.flags.help) {
       emit(help(), false, stdout);
@@ -102,6 +105,17 @@ export async function main(argv, context = {}) {
       return 0;
     }
     const repo = repositoryRoot(cwd);
+    if (command === "bootstrap") {
+      const result = bootstrapRepository(repo, {
+        presetName: parsed.flags.preset,
+        defaultBranch: parsed.flags["default-branch"],
+        env,
+        identity: context.identity,
+        verifyInstallation: context.verifyInstallation ?? true,
+      });
+      emit(result, json, result.ok ? stdout : stderr);
+      return result.exitCode;
+    }
     if (command === "github" && subcommand === "validate-waivers") {
       for (const flag of ["event", "reviews", "report"]) if (!parsed.flags[flag]) throw new GovernanceError(`--${flag} is required.`, { code: "RG_INVOCATION" });
       const result = validateRemoteWaiverApprovals({
@@ -153,7 +167,20 @@ export async function main(argv, context = {}) {
     throw new GovernanceError(`Unknown command: ${parsed.positional.join(" ")}`, { code: "RG_INVOCATION" });
   } catch (error) {
     const failure = asFailure(error);
-    emit(json ? failure : `${failure.error.code}: ${failure.error.message}`, json, stderr);
+    if (automationCommand) {
+      const report = {
+        schemaVersion: 1,
+        command,
+        ok: false,
+        status: "blocked",
+        repoPath: cwd,
+        nextActions: failure.error.details?.nextActions || [],
+        exitCode: failure.exitCode,
+        error: failure.error,
+        message: `${failure.error.code}: ${failure.error.message}`,
+      };
+      emit(report, json, stderr);
+    } else emit(json ? failure : `${failure.error.code}: ${failure.error.message}`, json, stderr);
     return failure.exitCode;
   }
 }

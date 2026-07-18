@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "name": "node-service",
+  "description": "Node.js service with API, integration, migration, and build boundaries.",
+  "requiredSelectors": [],
+  "optionalSelectors": [
+    { "id": "package", "type": "file", "path": "package.json" },
+    { "id": "test-command", "type": "package-script", "manifest": "package.json", "command": "test" },
+    { "id": "static-command", "type": "package-script", "manifest": "package.json", "command": "check:static" },
+    { "id": "build-command", "type": "package-script", "manifest": "package.json", "command": "build" }
+  ],
+  "testCategories": {
+    "unit": ["tests/unit/**", "tests/**/*.test.js", "tests/**/*.test.mjs", "tests/**/*.test.ts"],
+    "contract": ["tests/contract/**"],
+    "integration": ["tests/integration/**"],
+    "command-contract": ["tests/commands/**"],
+    "build-verification": ["tests/build/**"]
+  },
+  "highImpactMappings": [
+    { "businessPaths": ["src/**"], "requirements": [{ "anyOf": ["unit", "contract", "integration"] }] },
+    { "businessPaths": ["migrations/**"], "requirements": [{ "anyOf": ["integration"] }] },
+    { "businessPaths": ["package.json", "Dockerfile"], "requirements": [{ "anyOf": ["command-contract"] }, { "anyOf": ["build-verification"] }] }
+  ],
+  "testEntries": [],
+  "testSupport": ["tests/fixtures/**", "tests/helpers/**"],
+  "testTiers": { "pr-blocking": [], "nightly": [], "manual-smoke": [] },
+  "commandAliases": {},
+  "publicCommandCandidates": [
+    { "id": "test", "selector": "test-command", "manifest": "package.json", "command": "test", "semantics": "Runs the service's default deterministic test suite.", "tier": "pr-blocking", "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } },
+    { "id": "check-static", "selector": "static-command", "manifest": "package.json", "command": "check:static", "semantics": "Runs deterministic service static checks.", "tier": "pr-blocking", "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } },
+    { "id": "build", "selector": "build-command", "manifest": "package.json", "command": "build", "semantics": "Builds deployable service artifacts.", "tier": "pr-blocking", "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } }
+  ],
+  "workflowAllowedEntryTemplates": ["uses:Andrewlislin/repo-governance/.github/workflows/governance.yml@{engineCommitSha}"],
+  "hookStrategy": "connect-effective-pre-push",
+  "ciCaller": { "provider": "github-actions", "commentReporter": false }
+}

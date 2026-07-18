@@ -34,6 +34,7 @@
   "files": [
     "bin",
     "schemas",
+    "presets",
     "src",
     "templates"
   ],

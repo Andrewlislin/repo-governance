@@ -32,7 +32,20 @@ npm run install:local
 
 安装的 pre-push hook 保持精简且离线运行。它调用平台数据目录中的稳定 dispatcher；dispatcher 从 `.repo-governance.json` 读取 `engineCommitSha`，验证锁定的可执行文件，然后运行 `repo-governance check`。如果引擎缺失或损坏，检查会明确失败并提示执行 `repo-governance update`。
 
-## 初始化未来仓库
+## 已有仓库快速接入
+
+先安装经过验证且锁定版本的 release，然后运行一次显式接入命令：
+
+```sh
+cd existing-repository
+repo-governance bootstrap --preset node-library --json
+```
+
+`bootstrap` 会验证所选静态 Preset、写入 `.repo-governance.json` 和精简 GitHub Actions caller、组合当前仓库实际生效的 pre-push hook，并运行 adoption 检查。它绝不会覆盖已有治理配置；接入失败时会恢复原 Hook，并删除本次尝试创建的文件。
+
+内置 Preset 包括 `node-library`、`node-service`、`react-web`、`tauri-desktop` 和 `python-service`。详见 [Preset 说明](docs/presets.md) 与 [接入模型](docs/adoption-model.md)。
+
+## 手工初始化未来仓库
 
 ```sh
 repo-governance init --json

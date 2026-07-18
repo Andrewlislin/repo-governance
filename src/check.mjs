@@ -1,5 +1,5 @@
 import { readConfig } from "./config.mjs";
-import { changedPaths, resolveCanonicalBase } from "./git.mjs";
+import { changedPaths, repositorySnapshotPaths, resolveCanonicalBase } from "./git.mjs";
 import { evaluateRg001 } from "./rg001.mjs";
 import { applyLocalWaivers } from "./waiver.mjs";
 import { evaluateRg002 } from "./rg002.mjs";
@@ -11,14 +11,21 @@ export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const baseRef = base || config.defaultBranch;
   const endpoints = resolveCanonicalBase(repo, baseRef, head);
   const changed = changedPaths(repo, endpoints.canonicalBaseSha, endpoints.headSha);
+  return evaluateRepository(repo, config, endpoints, changed, { now });
+}
+
+function evaluateRepository(repo, config, endpoints, changed, { now, mode = "standard", allowWaivers = true } = {}) {
   const rg001 = evaluateRg001(config, changed);
-  const waived = applyLocalWaivers(repo, rg001.findings, endpoints.canonicalBaseSha, endpoints.headSha, now);
+  const waived = allowWaivers
+    ? applyLocalWaivers(repo, rg001.findings, endpoints.canonicalBaseSha, endpoints.headSha, now)
+    : { findings: rg001.findings, accepted: [] };
   const rg002 = evaluateRg002(repo, config);
   const rg003 = evaluateRg003(repo, config);
   const rg004 = evaluateRg004(repo, config, changed, endpoints.canonicalBaseSha);
   const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings];
   return {
     schemaVersion: 1,
+    mode,
     ok: findings.length === 0,
     exitCode: findings.length === 0 ? 0 : 1,
     endpoints,
@@ -29,4 +36,14 @@ export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
     testCommandGraph: rg002.reachable,
     capabilityBoundary: "RG001 verifies mapped companion categories and change evidence only. It does not prove assertion quality, semantic coverage, or business correctness.",
   };
+}
+
+export function checkAdoption(repo, { base, head = "HEAD", now } = {}) {
+  const config = readConfig(repo);
+  const endpoints = resolveCanonicalBase(repo, base || config.defaultBranch, head);
+  return evaluateRepository(repo, config, endpoints, repositorySnapshotPaths(repo), {
+    now,
+    mode: "adoption",
+    allowWaivers: false,
+  });
 }

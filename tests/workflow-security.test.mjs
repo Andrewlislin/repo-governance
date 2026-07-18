@@ -73,6 +73,9 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   const sourceChecker = readFileSync(join(root, "scripts", "check-sources.mjs"), "utf8");
   const seaBuilder = readFileSync(join(root, "scripts", "build-sea.mjs"), "utf8");
   const releasePackager = readFileSync(join(root, "scripts", "package-release.mjs"), "utf8");
+  assert.match(releasePackager, /policyAssetsSha256/);
+  assert.match(releasePackager, /"policy-assets", "presets"/);
+  assert.match(releasePackager, /"policy-assets", "schemas"/);
   assert.ok(steps.some((step) => step.name === "Install" && step.run === "npm ci"));
   assert.ok(steps.some((step) => step.name === "Static checks" && step.run === "npm run check:static"));
   assert.ok(steps.some((step) => step.name === "Full tests" && step.if === "runner.os != 'Windows'" && step.run === "npm test"));

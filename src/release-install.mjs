@@ -55,6 +55,10 @@ function installReleaseDirectory(bundle, { env, verifyAttestation, archivePath =
   const dispatcher = join(bundle, manifest.dispatcher.file);
   const skillsSource = join(bundle, "skills");
   if (!existsSync(skillsSource) || treeDigest(skillsSource) !== manifest.skillsSha256) throw new GovernanceError("Release Skill tree digest verification failed.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
+  if (manifest.policyAssetsSha256) {
+    const policyAssets = join(bundle, "policy-assets");
+    if (!existsSync(policyAssets) || treeDigest(policyAssets) !== manifest.policyAssetsSha256) throw new GovernanceError("Release policy asset digest verification failed.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
+  }
   if (!verifyAttestation(manifestPath, manifest)) throw new GovernanceError("The release manifest must have a valid GitHub artifact attestation.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
   if (archivePath && !verifyAttestation(archivePath, manifest)) throw new GovernanceError("The release archive must have a valid GitHub artifact attestation.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
   for (const [path, expected] of [[cli, manifest.cli.sha256], [dispatcher, manifest.dispatcher.sha256]]) {
