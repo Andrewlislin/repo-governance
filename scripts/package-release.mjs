@@ -4,6 +4,7 @@ import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url";
 import { join, resolve } from "node:path";
 import { treeDigest } from "../src/tree-digest.mjs";
+import { stageCodexSkills } from "../src/agent-assets.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const platform = process.env.REPO_GOVERNANCE_PLATFORM || `${process.platform}-${process.arch}`;
@@ -44,9 +45,15 @@ function createArchive(archivePath) {
 
 const cli = copyWithDigest("repo-governance");
 const dispatcher = copyWithDigest("dispatcher");
-cpSync(join(root, "skills"), join(staging, "skills"), { recursive: true });
+stageCodexSkills({
+  skillsSource: join(root, "adapters", "codex", "skills"),
+  playbooksSource: join(root, "playbooks"),
+  destination: join(staging, "skills"),
+});
 cpSync(join(root, "presets"), join(staging, "policy-assets", "presets"), { recursive: true });
 cpSync(join(root, "schemas"), join(staging, "policy-assets", "schemas"), { recursive: true });
+cpSync(join(root, "playbooks"), join(staging, "agent-assets", "playbooks"), { recursive: true });
+cpSync(join(root, "adapters", "codex"), join(staging, "agent-assets", "adapters", "codex"), { recursive: true });
 const manifest = {
   schemaVersion: 1,
   engineVersion: version,
@@ -59,6 +66,7 @@ const manifest = {
   dispatcher,
   skillsSha256: treeDigest(join(staging, "skills")),
   policyAssetsSha256: treeDigest(join(staging, "policy-assets")),
+  agentAssetsSha256: treeDigest(join(staging, "agent-assets")),
   attestationRequired: true,
 };
 writeFileSync(join(staging, "release-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);

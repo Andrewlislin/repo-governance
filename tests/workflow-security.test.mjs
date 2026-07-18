@@ -76,6 +76,7 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   assert.match(releasePackager, /policyAssetsSha256/);
   assert.match(releasePackager, /"policy-assets", "presets"/);
   assert.match(releasePackager, /"policy-assets", "schemas"/);
+  assert.match(releasePackager, /agentAssetsSha256/);
   assert.ok(steps.some((step) => step.name === "Install" && step.run === "npm ci"));
   assert.ok(steps.some((step) => step.name === "Static checks" && step.run === "npm run check:static"));
   assert.ok(steps.some((step) => step.name === "Full tests" && step.if === "runner.os != 'Windows'" && step.run === "npm test"));

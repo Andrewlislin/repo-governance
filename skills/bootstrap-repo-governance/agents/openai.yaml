@@ -1,4 +1,0 @@
-interface:
-  display_name: "Bootstrap Repo Governance"
-  short_description: "Initialize and review repository governance policy"
-  default_prompt: "Use $bootstrap-repo-governance to initialize and review governance for this repository."

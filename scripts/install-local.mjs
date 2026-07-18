@@ -59,8 +59,9 @@ export function installLocalFromSource({
   const dispatcherFile = executableName("dispatcher", platform);
   const cliSource = join(root, "dist", cliFile);
   const dispatcherSource = join(root, "dist", dispatcherFile);
-  const skillsSource = join(root, "skills");
-  for (const required of [cliSource, dispatcherSource, skillsSource]) {
+  const skillsSource = join(root, "adapters", "codex", "skills");
+  const playbooksSource = join(root, "playbooks");
+  for (const required of [cliSource, dispatcherSource, skillsSource, playbooksSource]) {
     if (!existsSync(required)) throw new GovernanceError(`Expected build output is missing: ${required}`, { code: "RG_INSTALL" });
   }
 
@@ -73,6 +74,7 @@ export function installLocalFromSource({
   const cliSha256 = digest(cliSource);
   const dispatcherSha256 = digest(dispatcherSource);
   const skillsSha256 = treeDigest(skillsSource);
+  const playbooksSha256 = treeDigest(playbooksSource);
 
   try {
     mkdirSync(engineDirectory, { recursive: true });
@@ -94,11 +96,12 @@ export function installLocalFromSource({
       cli: { file: cliFile, sha256: cliSha256 },
       dispatcher: { file: dispatcherFile, sha256: dispatcherSha256 },
       skillsSha256,
+      playbooksSha256,
     };
     writeFileSync(join(engineDirectory, "local-engine-manifest.json"), `${JSON.stringify(engineManifest, null, 2)}\n`);
     writeFileSync(join(engineDirectory, "engine-manifest.json"), `${JSON.stringify({ engineVersion: version, engineCommitSha: commitSha, sha256: cliSha256 }, null, 2)}\n`);
     writeFileSync(join(engineDirectory, "SHA256SUMS"), `${cliSha256}  ${cliFile}\n${dispatcherSha256}  ${dispatcherFile}\n`);
-    const skills = installSkills(skillsSource, { env });
+    const skills = installSkills(skillsSource, { env, playbooksSource });
     return { engineVersion: version, engineCommitSha: commitSha, dataRoot, engineDirectory, executable: cliTarget, dispatcher: dispatcherTarget, skills };
   } catch (error) {
     rmSync(engineDirectory, { recursive: true, force: true });
@@ -112,7 +115,7 @@ if (process.argv[1] === scriptPath) {
     const result = installLocalFromSource();
     process.stdout.write(`Installed repo-governance ${result.engineVersion} from source at ${result.engineDirectory}\n`);
     process.stdout.write(`Run next: ${result.executable} hooks install\n`);
-    process.stdout.write("Then initialize future repositories with: repo-governance init\n");
+    process.stdout.write("Then adopt a repository with: repo-governance bootstrap --preset <preset>\n");
   } catch (error) {
     process.stderr.write(`${error.message}\n`);
     process.exitCode = 2;

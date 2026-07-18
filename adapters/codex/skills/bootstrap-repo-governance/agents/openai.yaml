@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bootstrap Repo Governance"
+  short_description: "Adopt governance through explicit preset-driven CLI"
+  default_prompt: "Use $bootstrap-repo-governance to adopt governance for this repository with an explicit preset."

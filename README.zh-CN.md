@@ -98,9 +98,11 @@ V1 的命令图刻意只支持 `package.json` scripts、pnpm workspace/filter/ru
 
 修改命令文本但不更新契约会导致失败。主动接受新语义后，如果配置的契约测试、文档和 workflow 消费者没有在同一 diff 中更新，也会导致失败。这样可以防止熟悉的命令名称悄悄获得不同的含义。
 
-## Codex Skills
+## Codex Skills 与共享 Playbook
 
-`skills/` 目录包含五个提供建议的 Skills：治理初始化、变更测试影响规划、测试层级分类、公共命令保护和 CI 失败分类。它们读取仓库证据和 CLI JSON，而不会重新实现硬规则。CI 失败分类会先将失败归类为 `true-bug`、`stale-test`、`stale-workflow`、`wrong-ci-tier` 或 `insufficient-evidence`，然后才提出修复建议。
+Agent 无关的建议知识统一位于 `playbooks/`。精简 Codex wrapper 位于 `adapters/codex/skills/`，包括治理接入、变更测试影响规划、测试层级分类、公共命令保护和 CI 失败分类。它们调用锁定版本的 CLI 并解释 JSON，不重新实现硬规则。发布打包会把对应的规范 Playbook 物化为每个已安装 Skill 的 reference。
+
+CI 失败分类会先选择 `true-bug`、`stale-test`、`stale-workflow`、`wrong-ci-tier` 或 `insufficient-evidence`，然后才提出修复建议。这些是建议标签；CLI RG findings 始终是确定性事实。
 
 ## GitHub 强制层与豁免审批
 

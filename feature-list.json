@@ -33,7 +33,7 @@
     {
       "id": "v1.1-pr-4-playbooks-codex",
       "description": "Agent-neutral governance playbooks and thin Codex Skill adapters",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.1-pr-5-claude-adapter",

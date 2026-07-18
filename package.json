@@ -35,6 +35,8 @@
     "bin",
     "schemas",
     "presets",
+    "playbooks",
+    "adapters/codex",
     "src",
     "templates"
   ],

@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
+import { stageCodexSkills } from "../src/agent-assets.mjs";
+import { temporaryDirectory } from "./helpers.mjs";
 
-const root = fileURLToPath(new URL("../skills", import.meta.url));
+const root = fileURLToPath(new URL("../adapters/codex/skills", import.meta.url));
+const playbooks = fileURLToPath(new URL("../playbooks", import.meta.url));
 const expected = [
   "bootstrap-repo-governance",
   "classify-test-tier",
@@ -35,7 +38,7 @@ test("all planned Skills have valid metadata and no scaffold placeholders", () =
 });
 
 test("failure triage fixtures cover four classes and insufficient evidence", () => {
-  const fixtures = readFileSync(join(root, "triage-ci-failure", "references/classification-fixtures.md"), "utf8");
+  const fixtures = readFileSync(join(playbooks, "triage-ci-failure.md"), "utf8");
   for (const classification of ["true-bug", "stale-test", "stale-workflow", "wrong-ci-tier", "insufficient-evidence"]) {
     assert.match(fixtures, new RegExp(`\\b${classification}\\b`));
   }
@@ -46,5 +49,17 @@ test("failure triage fixtures cover four classes and insufficient evidence", () 
 test("Skills delegate hard decisions to CLI structured output", () => {
   const combined = expected.map((name) => readFileSync(join(root, name, "SKILL.md"), "utf8")).join("\n");
   assert.match(combined, /repo-governance check --json/);
-  assert.match(combined, /does not prove semantic coverage|Do not copy the engine/i);
+  assert.match(combined, /prepare-pr --json/);
+  assert.doesNotMatch(combined, /definitionHash|businessPaths|createHash|globToRegExp/);
+  for (const name of expected) assert.ok(readFileSync(join(playbooks, `${name}.md`), "utf8").length > 200);
+});
+
+test("release staging materializes the canonical playbook as each Skill reference", () => {
+  const destination = temporaryDirectory("repo-governance-staged-skills-");
+  stageCodexSkills({ skillsSource: root, playbooksSource: playbooks, destination });
+  for (const name of expected) {
+    const reference = join(destination, name, "references", "playbook.md");
+    assert.equal(existsSync(reference), true);
+    assert.equal(readFileSync(reference, "utf8"), readFileSync(join(playbooks, `${name}.md`), "utf8"));
+  }
 });

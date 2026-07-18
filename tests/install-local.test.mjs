@@ -18,7 +18,8 @@ function fixture() {
   write(join(root, "package.json"), `${JSON.stringify({ version: "1.0.0" }, null, 2)}\n`);
   write(join(root, "dist", cliName), "cli", 0o755);
   write(join(root, "dist", dispatcherName), "dispatcher", 0o755);
-  write(join(root, "skills", "example-skill", "SKILL.md"), "---\nname: example-skill\ndescription: Example source install fixture.\n---\n");
+  write(join(root, "adapters", "codex", "skills", "example-skill", "SKILL.md"), "---\nname: example-skill\ndescription: Example source install fixture.\n---\n");
+  write(join(root, "playbooks", "example-skill.md"), "# Example shared playbook\n");
   return { root, cliName, dispatcherName, commitSha: "b".repeat(40) };
 }
 
@@ -56,6 +57,7 @@ test("local source install copies CLI, dispatcher, manifests, checksums, and Ski
   assert.ok(existsSync(join(engineDirectory, cliName)));
   assert.ok(existsSync(join(dataRoot, dispatcherName)));
   assert.ok(existsSync(join(result.skills.root, "example-skill", "SKILL.md")));
+  assert.ok(existsSync(join(result.skills.root, "example-skill", "references", "playbook.md")));
   assert.deepEqual(fake.calls.filter(([command]) => command === "npm"), [["npm", "run", "check"], ["npm", "run", "build:sea"]]);
 
   const manifest = JSON.parse(readFileSync(join(engineDirectory, "local-engine-manifest.json"), "utf8"));
@@ -64,7 +66,8 @@ test("local source install copies CLI, dispatcher, manifests, checksums, and Ski
   assert.equal(manifest.engineVersion, "1.0.0");
   assert.equal(manifest.cli.sha256, digest("cli"));
   assert.equal(manifest.dispatcher.sha256, digest("dispatcher"));
-  assert.equal(manifest.skillsSha256, treeDigest(join(root, "skills")));
+  assert.equal(manifest.skillsSha256, treeDigest(join(root, "adapters", "codex", "skills")));
+  assert.equal(manifest.playbooksSha256, treeDigest(join(root, "playbooks")));
 
   const dispatcherManifest = JSON.parse(readFileSync(join(engineDirectory, "engine-manifest.json"), "utf8"));
   assert.deepEqual(dispatcherManifest, { engineVersion: "1.0.0", engineCommitSha: commitSha, sha256: digest("cli") });

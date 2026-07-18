@@ -98,9 +98,11 @@ Each team-confirmed public entry records its manifest, command name, exact defin
 
 Changing command text without updating its contract fails. Accepting new semantics also fails until the configured contract tests, documentation, and workflow consumers change in the same diff. This keeps a familiar command name from silently acquiring a different meaning.
 
-## Codex Skills
+## Codex Skills and shared Playbooks
 
-The `skills/` directory contains five advisory Skills: governance bootstrap, change-to-test impact planning, test-tier classification, public-command protection, and CI failure triage. They read repository evidence and CLI JSON rather than reimplementing hard rules. CI triage always classifies a failure as `true-bug`, `stale-test`, `stale-workflow`, `wrong-ci-tier`, or `insufficient-evidence` before suggesting a fix.
+Agent-neutral advisory knowledge lives in `playbooks/`. Thin Codex wrappers live in `adapters/codex/skills/`: governance bootstrap, change-to-test impact planning, test-tier classification, public-command protection, and CI failure triage. They invoke the version-pinned CLI and interpret its JSON rather than reimplementing hard rules. Release packaging materializes the matching canonical Playbook as each installed Skill's reference.
+
+CI triage classifies a failure as `true-bug`, `stale-test`, `stale-workflow`, `wrong-ci-tier`, or `insufficient-evidence` before suggesting a fix. These are advisory labels; CLI RG findings remain the deterministic facts.
 
 ## GitHub enforcement and waiver approvals
 
