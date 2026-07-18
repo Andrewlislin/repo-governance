@@ -47,6 +47,16 @@ test("central CI runs PR governance only on pull request events", () => {
   assert.equal(workflow.jobs.test.if, undefined);
 });
 
+test("central CI governance ref matches the locked engine commit", () => {
+  const config = JSON.parse(readFileSync(join(root, ".repo-governance.json"), "utf8"));
+  const workflow = parse(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8"));
+  const governanceRef = `Andrewlislin/repo-governance/.github/workflows/governance.yml@${config.engineCommitSha}`;
+  const reporterRef = `uses:Andrewlislin/repo-governance/.github/workflows/reporter.yml@${config.engineCommitSha}`;
+  assert.equal(workflow.jobs.governance.uses, governanceRef);
+  assert.ok(config.workflowAllowedEntries.includes(`uses:${governanceRef}`));
+  assert.ok(config.workflowAllowedEntries.includes(reporterRef));
+});
+
 test("thin caller pins reusable workflow to the same full engine commit", () => {
   const sha = "a".repeat(40);
   const contents = thinWorkflow({ engineVersion: "1.0.0", engineCommitSha: sha });
