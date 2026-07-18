@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import test from "node:test";
 import { main } from "../src/cli.mjs";
-import { commitAll, initGitRepo, write } from "./helpers.mjs";
+import { commitAll, initGitRepo, temporaryDirectory, write } from "./helpers.mjs";
 
 const identity = { version: "1.1.0", commitSha: "a".repeat(40) };
 
@@ -47,4 +47,26 @@ test("automation invocation errors retain the stable blocked envelope", async ()
   assert.equal(report.command, "bootstrap");
   assert.equal(report.status, "blocked");
   assert.equal(report.error.code, "RG_INVOCATION");
+});
+
+test("new CLI parses its public arguments and emits the shared automation envelope", async () => {
+  const stdout = sink();
+  const stderr = sink();
+  const parent = temporaryDirectory("repo-governance-cli-new-");
+  const env = {
+    ...process.env,
+    GIT_AUTHOR_NAME: "Test User",
+    GIT_AUTHOR_EMAIL: "test@example.com",
+    GIT_COMMITTER_NAME: "Test User",
+    GIT_COMMITTER_EMAIL: "test@example.com",
+  };
+  const code = await main(["new", "service", "--preset", "node-service", "--json"], {
+    cwd: parent, env, stdout: stdout.stream, stderr: stderr.stream, identity, verifyInstallation: false,
+  });
+  assert.equal(code, 0);
+  assert.equal(stderr.value(), "");
+  const report = JSON.parse(stdout.value());
+  assert.equal(report.command, "new");
+  assert.equal(report.initialized, true);
+  assert.match(report.initialCommit, /^[0-9a-f]{40}$/);
 });

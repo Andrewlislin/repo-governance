@@ -23,7 +23,7 @@
     {
       "id": "v1.1-pr-2-new-clone",
       "description": "Explicit new and clone automation with safe rollback and offline E2E coverage",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.1-pr-3-prepare-pr",

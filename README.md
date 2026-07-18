@@ -45,6 +45,19 @@ repo-governance bootstrap --preset node-library --json
 
 Available presets are `node-library`, `node-service`, `react-web`, `tauri-desktop`, and `python-service`. See [Preset reference](docs/presets.md) and [Adoption model](docs/adoption-model.md).
 
+## Quick Start for New and Cloned Repositories
+
+Use the explicit wrappers when you want repository creation or cloning and governance adoption to be one operation:
+
+```sh
+repo-governance new my-service --preset node-service --json
+repo-governance clone https://example.com/team/project.git --preset node-service --json
+```
+
+`new` creates a governance-only Git repository, commits only the generated governance files, and runs the standard check. It does not generate application code. `clone` preserves the cloned history and leaves the generated governance files uncommitted for review. A clone, bootstrap, check, or Git identity failure removes only the target directory created by that invocation.
+
+Native `git clone` is never intercepted. Developers must use `repo-governance clone` to receive the combined flow.
+
 ## Manual initialization of a future repository
 
 ```sh

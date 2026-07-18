@@ -12,3 +12,11 @@ This model deliberately does not:
 - select a preset from repository heuristics;
 - silently change GitHub rulesets;
 - put RG001–RG005 logic in Agent prompts or wrappers.
+
+## New and cloned repositories
+
+`repo-governance new <name> --preset <name>` creates a governance-only repository. It verifies an explicit Git identity, writes governance files through the same bootstrap implementation, commits only those generated files, and then runs the standard check.
+
+`repo-governance clone <repo> [directory] --preset <name>` passes the repository argument directly to `git clone`, preserves source history, and enters the same adoption flow. GitHub is not required for local Hook and CLI governance. For a non-GitHub origin, the generated GitHub Actions caller is reported as a template whose provider applicability has not been confirmed.
+
+Both commands reject pre-existing destinations. If an operation fails, cleanup is limited to the exact destination that the command verified did not exist and then created.

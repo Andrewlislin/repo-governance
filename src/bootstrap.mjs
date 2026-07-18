@@ -95,10 +95,11 @@ export function bootstrapRepository(repo, {
   env = process.env,
   identity = runtimeIdentity(),
   verifyInstallation = true,
+  deferCheck = false,
 } = {}) {
   const root = resolve(repo);
   if (!presetName) throw new GovernanceError("--preset is required.", { code: "RG_INVOCATION" });
-  assertCommittedRepository(root, env);
+  if (!deferCheck) assertCommittedRepository(root, env);
   if (verifyInstallation) assertLockedRuntime(identity, env);
   const branch = detectDefaultBranch(root, { explicit: defaultBranch, env });
   const configPath = join(root, ".repo-governance.json");
@@ -138,7 +139,7 @@ export function bootstrapRepository(repo, {
     wroteWorkflow = true;
     hookChanged = true;
     const hook = connectEffectiveRepositoryHook(root, { env, requireDispatcher: verifyInstallation });
-    const checkResult = checkAdoption(root, { base: branch });
+    const checkResult = deferCheck ? null : checkAdoption(root, { base: branch });
     const common = {
       schemaVersion: 1,
       command: "bootstrap",
@@ -149,7 +150,7 @@ export function bootstrapRepository(repo, {
       checkResult,
       nextActions: nextActionsFor(materialized, remoteKind(root, env)),
     };
-    if (!checkResult.ok) {
+    if (checkResult && !checkResult.ok) {
       rollback();
       return { ...common, ok: false, status: "needs_attention", exitCode: 1, writtenFiles: [], rolledBack: true, message: "Bootstrap found governance issues and rolled back the attempted adoption." };
     }

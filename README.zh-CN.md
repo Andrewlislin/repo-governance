@@ -45,6 +45,19 @@ repo-governance bootstrap --preset node-library --json
 
 内置 Preset 包括 `node-library`、`node-service`、`react-web`、`tauri-desktop` 和 `python-service`。详见 [Preset 说明](docs/presets.md) 与 [接入模型](docs/adoption-model.md)。
 
+## 新建与克隆仓库快速接入
+
+需要在创建或克隆仓库的同时完成治理接入时，使用以下显式入口：
+
+```sh
+repo-governance new my-service --preset node-service --json
+repo-governance clone https://example.com/team/project.git --preset node-service --json
+```
+
+`new` 创建只含治理骨架的 Git 仓库，只提交生成的治理文件，然后运行标准检查；它不会生成业务代码。`clone` 保留原提交历史，并把生成的治理文件作为未提交变更留给开发者审阅。如果 clone、bootstrap、check 或 Git 身份验证失败，只会删除本次命令创建的目标目录。
+
+本工具绝不会拦截原生 `git clone`。只有显式使用 `repo-governance clone` 才会获得组合流程。
+
 ## 手工初始化未来仓库
 
 ```sh

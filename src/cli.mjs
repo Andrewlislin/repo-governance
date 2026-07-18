@@ -14,6 +14,8 @@ import { githubEnforce } from "./github/enforce.mjs";
 import { installReleaseBundle } from "./release-install.mjs";
 import { installSkills } from "./skills-install.mjs";
 import { bootstrapRepository } from "./bootstrap.mjs";
+import { newRepository } from "./new.mjs";
+import { cloneRepository } from "./clone.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -42,6 +44,8 @@ function help() {
   return `repo-governance commands:
   init [--accept] [--default-branch main] [--json]
   bootstrap --preset <preset> [--default-branch <branch>] [--json]
+  new <name> --preset <preset> [--default-branch <branch>] [--json]
+  clone <repo> [directory] --preset <preset> [--default-branch <branch>] [--json]
   check [--base <ref>] [--head <ref>] [--json]
   waiver create --name <name> --paths <a,b> --reason <text> --expires <ISO> [--base <ref>]
   hooks install --dispatcher <verified-file> [--compose]
@@ -103,6 +107,30 @@ export async function main(argv, context = {}) {
     if (command === "hooks" && subcommand === "uninstall") {
       emit(uninstallFutureHooks({ env }), json, stdout);
       return 0;
+    }
+    if (command === "new") {
+      const result = newRepository(subcommand, {
+        cwd,
+        presetName: parsed.flags.preset,
+        defaultBranch: parsed.flags["default-branch"] || "main",
+        env,
+        identity: context.identity,
+        verifyInstallation: context.verifyInstallation ?? true,
+      });
+      emit(result, json, result.ok ? stdout : stderr);
+      return result.exitCode;
+    }
+    if (command === "clone") {
+      const result = cloneRepository(subcommand, parsed.positional[2], {
+        cwd,
+        presetName: parsed.flags.preset,
+        defaultBranch: parsed.flags["default-branch"],
+        env,
+        identity: context.identity,
+        verifyInstallation: context.verifyInstallation ?? true,
+      });
+      emit(result, json, result.ok ? stdout : stderr);
+      return result.exitCode;
     }
     const repo = repositoryRoot(cwd);
     if (command === "bootstrap") {
@@ -173,7 +201,7 @@ export async function main(argv, context = {}) {
         command,
         ok: false,
         status: "blocked",
-        repoPath: cwd,
+        repoPath: failure.error.details?.repoPath || cwd,
         nextActions: failure.error.details?.nextActions || [],
         exitCode: failure.exitCode,
         error: failure.error,
