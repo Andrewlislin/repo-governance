@@ -14,6 +14,31 @@
       "id": "pr-3-github-and-release",
       "description": "GitHub enforcement, reusable workflow, release, and supply-chain verification",
       "passes": true
+    },
+    {
+      "id": "v1.1-pr-1-bootstrap-presets",
+      "description": "Preset-driven bootstrap, adoption checks, hook connection, and stable automation reports",
+      "passes": false
+    },
+    {
+      "id": "v1.1-pr-2-new-clone",
+      "description": "Explicit new and clone automation with safe rollback and offline E2E coverage",
+      "passes": false
+    },
+    {
+      "id": "v1.1-pr-3-prepare-pr",
+      "description": "Deterministic prepare-pr reporting and clearer first-push diagnostics",
+      "passes": false
+    },
+    {
+      "id": "v1.1-pr-4-playbooks-codex",
+      "description": "Agent-neutral governance playbooks and thin Codex Skill adapters",
+      "passes": false
+    },
+    {
+      "id": "v1.1-pr-5-claude-adapter",
+      "description": "Claude Code adapter and cross-agent contract consistency",
+      "passes": false
     }
   ]
 }
