@@ -9,6 +9,7 @@ import { GovernanceError } from "../src/errors.mjs";
 import { governanceDataRoot } from "../src/paths.mjs";
 import { installSkills } from "../src/skills-install.mjs";
 import { treeDigest } from "../src/tree-digest.mjs";
+import { stageAgentAssets } from "../src/agent-assets.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const defaultRoot = resolve(dirname(scriptPath), "..");
@@ -61,7 +62,8 @@ export function installLocalFromSource({
   const dispatcherSource = join(root, "dist", dispatcherFile);
   const skillsSource = join(root, "adapters", "codex", "skills");
   const playbooksSource = join(root, "playbooks");
-  for (const required of [cliSource, dispatcherSource, skillsSource, playbooksSource]) {
+  const adaptersSource = join(root, "adapters");
+  for (const required of [cliSource, dispatcherSource, skillsSource, playbooksSource, adaptersSource]) {
     if (!existsSync(required)) throw new GovernanceError(`Expected build output is missing: ${required}`, { code: "RG_INSTALL" });
   }
 
@@ -74,13 +76,14 @@ export function installLocalFromSource({
   const cliSha256 = digest(cliSource);
   const dispatcherSha256 = digest(dispatcherSource);
   const skillsSha256 = treeDigest(skillsSource);
-  const playbooksSha256 = treeDigest(playbooksSource);
 
   try {
     mkdirSync(engineDirectory, { recursive: true });
     const cliTarget = join(engineDirectory, cliFile);
     cpSync(cliSource, cliTarget);
     cpSync(dispatcherSource, dispatcherTarget);
+    const agentAssets = join(engineDirectory, "agent-assets");
+    stageAgentAssets({ playbooksSource, adaptersSource, destination: agentAssets });
     if (platform !== "win32") {
       chmodSync(cliTarget, 0o755);
       chmodSync(dispatcherTarget, 0o755);
@@ -96,13 +99,19 @@ export function installLocalFromSource({
       cli: { file: cliFile, sha256: cliSha256 },
       dispatcher: { file: dispatcherFile, sha256: dispatcherSha256 },
       skillsSha256,
-      playbooksSha256,
+      playbooksSha256: treeDigest(playbooksSource),
+      agentAssetsSha256: treeDigest(agentAssets),
     };
     writeFileSync(join(engineDirectory, "local-engine-manifest.json"), `${JSON.stringify(engineManifest, null, 2)}\n`);
-    writeFileSync(join(engineDirectory, "engine-manifest.json"), `${JSON.stringify({ engineVersion: version, engineCommitSha: commitSha, sha256: cliSha256 }, null, 2)}\n`);
+    writeFileSync(join(engineDirectory, "engine-manifest.json"), `${JSON.stringify({
+      engineVersion: version,
+      engineCommitSha: commitSha,
+      sha256: cliSha256,
+      agentAssetsSha256: engineManifest.agentAssetsSha256,
+    }, null, 2)}\n`);
     writeFileSync(join(engineDirectory, "SHA256SUMS"), `${cliSha256}  ${cliFile}\n${dispatcherSha256}  ${dispatcherFile}\n`);
     const skills = installSkills(skillsSource, { env, playbooksSource });
-    return { engineVersion: version, engineCommitSha: commitSha, dataRoot, engineDirectory, executable: cliTarget, dispatcher: dispatcherTarget, skills };
+    return { engineVersion: version, engineCommitSha: commitSha, dataRoot, engineDirectory, executable: cliTarget, dispatcher: dispatcherTarget, agentAssets, skills };
   } catch (error) {
     rmSync(engineDirectory, { recursive: true, force: true });
     rmSync(dispatcherTarget, { force: true });

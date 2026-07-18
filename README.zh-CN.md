@@ -2,7 +2,7 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-由本地 Git hooks、Codex Skills 和 GitHub Actions 共享的确定性仓库治理工具。本项目有意拆分为严格且可解释的 CLI 规则引擎和提供建议的 Skills。本地与 CI 使用固定为同一版本的规则引擎。
+由本地 Git hooks、CI、Codex 和 Claude Code 共享的确定性仓库治理工具。本项目有意拆分为严格且可解释的 CLI 规则引擎和精简的建议型 Agent 适配层。本地与 CI 使用固定为同一版本的规则引擎。
 
 ## 能力边界
 
@@ -98,11 +98,13 @@ V1 的命令图刻意只支持 `package.json` scripts、pnpm workspace/filter/ru
 
 修改命令文本但不更新契约会导致失败。主动接受新语义后，如果配置的契约测试、文档和 workflow 消费者没有在同一 diff 中更新，也会导致失败。这样可以防止熟悉的命令名称悄悄获得不同的含义。
 
-## Codex Skills 与共享 Playbook
+## 在 Codex 与 Claude Code 中使用
 
-Agent 无关的建议知识统一位于 `playbooks/`。精简 Codex wrapper 位于 `adapters/codex/skills/`，包括治理接入、变更测试影响规划、测试层级分类、公共命令保护和 CI 失败分类。它们调用锁定版本的 CLI 并解释 JSON，不重新实现硬规则。发布打包会把对应的规范 Playbook 物化为每个已安装 Skill 的 reference。
+Agent 无关的建议知识统一位于 `playbooks/`。精简 Codex wrapper 位于 `adapters/codex/skills/`；Claude Code 使用 `adapters/claude-code/` 下的 `CLAUDE.md` 和五个对应命令模板。两套适配声明相同的 CLI 命令、JSON 报告版本、Playbook ID、消费字段和建议标签。它们调用锁定版本的 CLI 并解释 JSON，不重新实现硬规则。
 
 CI 失败分类会先选择 `true-bug`、`stale-test`、`stale-workflow`、`wrong-ci-tier` 或 `insufficient-evidence`，然后才提出修复建议。这些是建议标签；CLI RG findings 始终是确定性事实。
+
+Release 与源码安装会把规范 Playbook 和两套 adapter 保存在已安装引擎的版本锁定 `agent-assets/` 目录中。Codex Skill 还会安装到 `CODEX_HOME`；可按需把 Claude 模板复制到目标仓库的 `.claude/commands/`。详见 [Agent 适配说明](docs/agent-adapters.md)。
 
 ## GitHub 强制层与豁免审批
 
@@ -114,8 +116,8 @@ CI 失败分类会先选择 `true-bug`、`stale-test`、`stale-workflow`、`wron
 
 ## 发布与安装
 
-发布构建需要 Node.js 22.x，并为 CLI 和稳定 dispatcher 生成各平台的 Node SEA 可执行文件。GitHub Releases 每个平台只发布一个压缩包（Linux/macOS 使用 `.tar.gz`，Windows 使用 `.zip`），并附带顶层 `SHA256SUMS` 和 `release-index.json`；不使用 GitHub Packages。每个压缩包内部包含 CLI、dispatcher、Skills、内部 manifest 和平台内校验文件。发布产物包含 SHA-256 元数据和 GitHub artifact attestation，后者绑定到 `Andrewlislin/repo-governance`、`.github/workflows/release.yml`、源码提交、平台压缩包以及 release manifest。经过 attestation 的 release manifest 还会绑定确定性的 Skill-tree digest。如果 checksum 或 attestation 任一验证失败，安装都会失败；绝不单独信任 checksum。
+发布构建需要 Node.js 22.x，并为 CLI 和稳定 dispatcher 生成各平台的 Node SEA 可执行文件。GitHub Releases 每个平台只发布一个压缩包（Linux/macOS 使用 `.tar.gz`，Windows 使用 `.zip`），并附带顶层 `SHA256SUMS` 和 `release-index.json`；不使用 GitHub Packages。每个压缩包内部包含 CLI、dispatcher、Codex Skills、规范 Playbook、Codex/Claude adapter、内部 manifest 和平台内校验文件。发布产物包含 SHA-256 元数据和 GitHub artifact attestation，后者绑定到 `Andrewlislin/repo-governance`、`.github/workflows/release.yml`、源码提交、平台压缩包以及 release manifest。经过 attestation 的 release manifest 还会绑定确定性的 Skill、策略资产和 Agent 资产目录摘要。如果 checksum 或 attestation 任一验证失败，安装都会失败；绝不单独信任 checksum。
 
 在 macOS/Linux 上，CLI/dispatcher 数据使用 `${XDG_DATA_HOME:-$HOME/.local/share}/repo-governance`；在 Windows 上使用 `%LOCALAPPDATA%/repo-governance`。Skills 使用 `${CODEX_HOME:-$HOME/.codex}/skills`。可选的 shareable-index 边界记录在 `adapters/` 下，绝不会成为公开项目的运行时依赖。
 
-面向本地 hooks、Codex Skills 和 GitHub Actions 的确定性仓库治理工具
+面向本地 hooks、CI、Codex 和 Claude Code 的确定性仓库治理工具

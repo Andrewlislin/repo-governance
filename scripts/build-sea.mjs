@@ -1,7 +1,8 @@
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, resolve } from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { build } from "esbuild";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -10,6 +11,23 @@ const dist = join(root, "dist");
 const version = process.env.REPO_GOVERNANCE_BUILD_VERSION || JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
 const commitSha = process.env.REPO_GOVERNANCE_BUILD_SHA || execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
 const extension = process.platform === "win32" ? ".exe" : "";
+
+function smokeTestExecutable(name, executable) {
+  if (name === "repo-governance") {
+    const result = spawnSync(executable, ["version", "--json"], { encoding: "utf8" });
+    if (result.status !== 0) throw new Error(`SEA CLI smoke test failed: ${(result.stderr || result.stdout || "no output").trim()}`);
+    const identity = JSON.parse(result.stdout);
+    if (identity.version !== version || identity.commitSha !== commitSha) throw new Error("SEA CLI identity does not match the build inputs.");
+    return;
+  }
+  const cwd = mkdtempSync(join(tmpdir(), "repo-governance-sea-smoke-"));
+  try {
+    const result = spawnSync(executable, [], { cwd, encoding: "utf8" });
+    if (result.status !== 2 || !result.stderr.includes("Repository is not initialized")) throw new Error("SEA dispatcher smoke test did not execute the expected offline failure path.");
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
 
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
@@ -39,9 +57,12 @@ for (const target of [
   cpSync(process.execPath, executable);
   if (process.platform === "darwin") execFileSync("codesign", ["--remove-signature", executable]);
   const postject = join(root, "node_modules", ".bin", process.platform === "win32" ? "postject.cmd" : "postject");
-  execFileSync(postject, [executable, "NODE_SEA_BLOB", blob, "--sentinel-fuse", "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"], {
+  const postjectArgs = [executable, "NODE_SEA_BLOB", blob, "--sentinel-fuse", "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"];
+  if (process.platform === "darwin") postjectArgs.push("--macho-segment-name", "NODE_SEA");
+  execFileSync(postject, postjectArgs, {
     stdio: "inherit",
     shell: process.platform === "win32",
   });
   if (process.platform === "darwin") execFileSync("codesign", ["--sign", "-", executable]);
+  smokeTestExecutable(target.name, executable);
 }

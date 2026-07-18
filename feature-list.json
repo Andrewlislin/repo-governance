@@ -38,7 +38,7 @@
     {
       "id": "v1.1-pr-5-claude-adapter",
       "description": "Claude Code adapter and cross-agent contract consistency",
-      "passes": false
+      "passes": true
     }
   ]
 }

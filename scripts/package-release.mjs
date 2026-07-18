@@ -4,7 +4,7 @@ import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url";
 import { join, resolve } from "node:path";
 import { treeDigest } from "../src/tree-digest.mjs";
-import { stageCodexSkills } from "../src/agent-assets.mjs";
+import { stageAgentAssets, stageCodexSkills } from "../src/agent-assets.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const platform = process.env.REPO_GOVERNANCE_PLATFORM || `${process.platform}-${process.arch}`;
@@ -52,8 +52,11 @@ stageCodexSkills({
 });
 cpSync(join(root, "presets"), join(staging, "policy-assets", "presets"), { recursive: true });
 cpSync(join(root, "schemas"), join(staging, "policy-assets", "schemas"), { recursive: true });
-cpSync(join(root, "playbooks"), join(staging, "agent-assets", "playbooks"), { recursive: true });
-cpSync(join(root, "adapters", "codex"), join(staging, "agent-assets", "adapters", "codex"), { recursive: true });
+stageAgentAssets({
+  playbooksSource: join(root, "playbooks"),
+  adaptersSource: join(root, "adapters"),
+  destination: join(staging, "agent-assets"),
+});
 const manifest = {
   schemaVersion: 1,
   engineVersion: version,

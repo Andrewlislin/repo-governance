@@ -1,0 +1,37 @@
+{
+  "bootstrap": {
+    "schemaVersion": 1,
+    "command": "bootstrap",
+    "ok": true,
+    "status": "succeeded",
+    "preset": { "name": "node-library", "schemaVersion": 1, "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    "writtenFiles": [".repo-governance.json", ".github/workflows/governance.yml"],
+    "hookMode": "native",
+    "hookConnected": true,
+    "checkResult": { "schemaVersion": 1, "ok": true, "findings": [] },
+    "nextActions": []
+  },
+  "prepare-pr": {
+    "schemaVersion": 1,
+    "command": "prepare-pr",
+    "ok": false,
+    "status": "needs_attention",
+    "summary": { "status": "findings", "changedPathCount": 1, "findingCount": 1 },
+    "ruleFindings": {
+      "RG001": { "status": "fail", "findings": [{ "rule": "RG001", "message": "Required test evidence is missing." }] },
+      "RG002": { "status": "pass", "findings": [] },
+      "RG003": { "status": "pass", "findings": [] },
+      "RG004": { "status": "not-applicable", "findings": [] },
+      "RG005": { "status": "pass", "findings": [] }
+    },
+    "requiredTests": [{ "status": "missing", "semanticCoverageVerified": false }],
+    "commandContractFindings": [],
+    "sourceCheckResult": { "schemaVersion": 1, "ok": false, "findings": [{ "rule": "RG001" }] },
+    "nextActions": [{ "id": "resolve-governance-findings", "severity": "error", "message": "Resolve findings." }]
+  },
+  "check": {
+    "schemaVersion": 1,
+    "ok": false,
+    "findings": [{ "rule": "RG002", "message": "Test tier evidence requires review." }]
+  }
+}

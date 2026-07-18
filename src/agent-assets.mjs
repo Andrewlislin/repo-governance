@@ -16,3 +16,10 @@ export function stageCodexSkills({ skillsSource, playbooksSource, destination })
   }
   return { destination, names };
 }
+
+export function stageAgentAssets({ playbooksSource, adaptersSource, destination }) {
+  mkdirSync(destination, { recursive: true });
+  cpSync(playbooksSource, join(destination, "playbooks"), { recursive: true });
+  cpSync(adaptersSource, join(destination, "adapters"), { recursive: true });
+  return { destination };
+}

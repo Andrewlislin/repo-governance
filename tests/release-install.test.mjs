@@ -25,6 +25,8 @@ function bundle(overrides = {}) {
   write(join(root, "policy-assets", "presets", "example.json"), "{}\n");
   write(join(root, "policy-assets", "schemas", "example.schema.json"), "{}\n");
   write(join(root, "agent-assets", "playbooks", "example.md"), "# Example\n");
+  write(join(root, "agent-assets", "adapters", "codex", "adapter-contract.json"), "{}\n");
+  write(join(root, "agent-assets", "adapters", "claude-code", "CLAUDE.md"), "# Example Claude adapter\n");
   const manifest = {
     schemaVersion: 1,
     engineVersion: "1.0.0",
@@ -60,13 +62,17 @@ function isolatedEnv() {
   return { ...process.env, HOME: home, XDG_DATA_HOME: join(home, ".local", "share"), CODEX_HOME: join(home, ".codex") };
 }
 
-test("verified bundle installs CLI, dispatcher, and Skills only in standard roots", () => {
+test("verified bundle installs CLI, dispatcher, versioned Agent assets, and Skills in standard roots", () => {
   const { root, manifest } = bundle();
   const env = isolatedEnv();
   const result = installReleaseBundle(root, { env, verifyAttestation: () => true });
   assert.equal(result.engineCommitSha, manifest.engineCommitSha);
   assert.ok(existsSync(join(result.dataRoot, "engines", manifest.engineCommitSha, process.platform === "win32" ? "repo-governance.exe" : "repo-governance")));
   assert.ok(existsSync(join(result.skills.root, "example-skill", "SKILL.md")));
+  assert.ok(existsSync(join(result.agentAssets, "playbooks", "example.md")));
+  assert.ok(existsSync(join(result.agentAssets, "adapters", "claude-code", "CLAUDE.md")));
+  const engineManifest = JSON.parse(readFileSync(join(result.dataRoot, "engines", manifest.engineCommitSha, "engine-manifest.json"), "utf8"));
+  assert.equal(engineManifest.agentAssetsSha256, manifest.agentAssetsSha256);
   assert.equal(result.dataRoot, join(env.XDG_DATA_HOME, "repo-governance"));
   assert.equal(result.skills.root, join(env.CODEX_HOME, "skills"));
 });

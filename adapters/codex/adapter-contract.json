@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "adapter": "codex",
+  "reportSchemaVersion": 1,
+  "playbooks": [
+    {
+      "id": "bootstrap-repo-governance",
+      "commandTemplates": [
+        "repo-governance bootstrap --preset <preset> --json",
+        "repo-governance new <name> --preset <preset> --json",
+        "repo-governance clone <repo> [directory] --preset <preset> --json"
+      ],
+      "fixture": "bootstrap",
+      "consumes": ["status", "preset", "writtenFiles", "hookMode", "hookConnected", "checkResult", "nextActions"],
+      "classificationLabels": ["succeeded", "needs_attention", "blocked"]
+    },
+    {
+      "id": "plan-change-test-impact",
+      "commandTemplates": [
+        "repo-governance prepare-pr --json",
+        "repo-governance check --base <ref> --head <ref> --json"
+      ],
+      "fixture": "prepare-pr",
+      "consumes": ["summary", "ruleFindings.RG001", "requiredTests", "sourceCheckResult", "nextActions"],
+      "classificationLabels": ["missing", "satisfied"]
+    },
+    {
+      "id": "classify-test-tier",
+      "commandTemplates": ["repo-governance check --json"],
+      "fixture": "check",
+      "consumes": ["findings"],
+      "classificationLabels": ["pr-blocking", "nightly", "manual-smoke", "testSupport"]
+    },
+    {
+      "id": "protect-public-commands",
+      "commandTemplates": [
+        "repo-governance prepare-pr --json",
+        "repo-governance check --json"
+      ],
+      "fixture": "prepare-pr",
+      "consumes": ["ruleFindings.RG004", "commandContractFindings", "sourceCheckResult"],
+      "classificationLabels": ["pass", "fail", "not-applicable"]
+    },
+    {
+      "id": "triage-ci-failure",
+      "commandTemplates": ["repo-governance check --json"],
+      "fixture": "check",
+      "consumes": ["ok", "findings"],
+      "classificationLabels": ["true-bug", "stale-test", "stale-workflow", "wrong-ci-tier", "insufficient-evidence"]
+    }
+  ]
+}

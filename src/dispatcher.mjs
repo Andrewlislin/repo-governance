@@ -44,9 +44,3 @@ export function dispatch({ cwd = process.cwd(), argv = [], env = process.env, pl
   const result = spawnSync(executable, ["check", ...forwarded], { cwd: repo, env, stdio: "inherit" });
   return { exitCode: result.status ?? 2, message: result.error?.message };
 }
-
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
-  const result = dispatch({ argv: process.argv.slice(2) });
-  if (result.message) process.stderr.write(`${result.message}\n`);
-  process.exitCode = result.exitCode;
-}

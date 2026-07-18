@@ -2,7 +2,7 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-Deterministic repository governance shared by local Git hooks, Codex Skills, and GitHub Actions. The project is intentionally split into a hard, explainable CLI rule engine and advisory Skills. The same version-pinned engine is used locally and in CI.
+Deterministic repository governance shared by local Git hooks, CI, Codex, and Claude Code. The project is intentionally split into a hard, explainable CLI rule engine and thin advisory Agent adapters. The same version-pinned engine is used locally and in CI.
 
 ## Capability boundary
 
@@ -98,11 +98,13 @@ Each team-confirmed public entry records its manifest, command name, exact defin
 
 Changing command text without updating its contract fails. Accepting new semantics also fails until the configured contract tests, documentation, and workflow consumers change in the same diff. This keeps a familiar command name from silently acquiring a different meaning.
 
-## Codex Skills and shared Playbooks
+## Using with Codex and Claude Code
 
-Agent-neutral advisory knowledge lives in `playbooks/`. Thin Codex wrappers live in `adapters/codex/skills/`: governance bootstrap, change-to-test impact planning, test-tier classification, public-command protection, and CI failure triage. They invoke the version-pinned CLI and interpret its JSON rather than reimplementing hard rules. Release packaging materializes the matching canonical Playbook as each installed Skill's reference.
+Agent-neutral advisory knowledge lives in `playbooks/`. Thin Codex wrappers live in `adapters/codex/skills/`; Claude Code receives `CLAUDE.md` and five matching prompt templates under `adapters/claude-code/commands/`. Both adapters declare the same CLI commands, JSON report version, Playbook IDs, consumed fields, and advisory labels. They invoke the version-pinned CLI and interpret its JSON rather than reimplementing hard rules.
 
 CI triage classifies a failure as `true-bug`, `stale-test`, `stale-workflow`, `wrong-ci-tier`, or `insufficient-evidence` before suggesting a fix. These are advisory labels; CLI RG findings remain the deterministic facts.
+
+Release and local-source installation keep the canonical Playbooks and both adapter trees under the installed engine's version-locked `agent-assets/` directory. Codex Skills are also installed into `CODEX_HOME`; selected Claude templates can be copied into a repository's `.claude/commands/`. See [Agent adapters](docs/agent-adapters.md).
 
 ## GitHub enforcement and waiver approvals
 
@@ -114,7 +116,7 @@ Remote RG005 validation reads live reviews. The latest review by an allowed appr
 
 ## Release and installation
 
-Release builds require Node.js 22.x and produce per-platform Node SEA executables for the CLI and stable dispatcher. GitHub Releases publish one archive per platform (`.tar.gz` for Linux/macOS and `.zip` for Windows), plus top-level `SHA256SUMS` and `release-index.json`; GitHub Packages is not used. Each archive contains the CLI, dispatcher, Skills, an internal manifest, and platform-local checksums. Published artifacts include SHA-256 metadata and GitHub artifact attestations bound to `Andrewlislin/repo-governance`, `.github/workflows/release.yml`, the source commit, the platform archive, and the release manifest. The attested release manifest also binds the deterministic Skill-tree digest. Installation fails if either checksum or attestation verification fails; checksum alone is never accepted.
+Release builds require Node.js 22.x and produce per-platform Node SEA executables for the CLI and stable dispatcher. GitHub Releases publish one archive per platform (`.tar.gz` for Linux/macOS and `.zip` for Windows), plus top-level `SHA256SUMS` and `release-index.json`; GitHub Packages is not used. Each archive contains the CLI, dispatcher, Codex Skills, canonical Playbooks, Codex/Claude adapters, an internal manifest, and platform-local checksums. Published artifacts include SHA-256 metadata and GitHub artifact attestations bound to `Andrewlislin/repo-governance`, `.github/workflows/release.yml`, the source commit, the platform archive, and the release manifest. The attested release manifest also binds deterministic Skill, policy-asset, and Agent-asset tree digests. Installation fails if either checksum or attestation verification fails; checksum alone is never accepted.
 
 CLI/dispatcher data uses `${XDG_DATA_HOME:-$HOME/.local/share}/repo-governance` on macOS/Linux and `%LOCALAPPDATA%/repo-governance` on Windows. Skills use `${CODEX_HOME:-$HOME/.codex}/skills`. The optional shareable-index boundary is documented under `adapters/` and is never a public runtime dependency.
-Deterministic repository governance for local hooks, Codex Skills, and GitHub Actions
+Deterministic repository governance for local hooks, CI, Codex, and Claude Code

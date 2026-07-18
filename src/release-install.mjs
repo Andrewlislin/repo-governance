@@ -54,6 +54,7 @@ function installReleaseDirectory(bundle, { env, verifyAttestation, archivePath =
   const cli = join(bundle, manifest.cli.file);
   const dispatcher = join(bundle, manifest.dispatcher.file);
   const skillsSource = join(bundle, "skills");
+  const agentAssetsSource = manifest.agentAssetsSha256 ? join(bundle, "agent-assets") : null;
   if (!existsSync(skillsSource) || treeDigest(skillsSource) !== manifest.skillsSha256) throw new GovernanceError("Release Skill tree digest verification failed.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
   if (manifest.policyAssetsSha256) {
     const policyAssets = join(bundle, "policy-assets");
@@ -79,13 +80,20 @@ function installReleaseDirectory(bundle, { env, verifyAttestation, archivePath =
     const executable = join(engineDirectory, process.platform === "win32" ? "repo-governance.exe" : "repo-governance");
     cpSync(cli, executable);
     cpSync(dispatcher, dispatcherTarget);
+    const agentAssets = agentAssetsSource ? join(engineDirectory, "agent-assets") : null;
+    if (agentAssetsSource) cpSync(agentAssetsSource, agentAssets, { recursive: true });
     if (process.platform !== "win32") {
       chmodSync(executable, 0o755);
       chmodSync(dispatcherTarget, 0o755);
     }
-    writeFileSync(join(engineDirectory, "engine-manifest.json"), `${JSON.stringify({ engineVersion: manifest.engineVersion, engineCommitSha: manifest.engineCommitSha, sha256: manifest.cli.sha256 }, null, 2)}\n`);
+    writeFileSync(join(engineDirectory, "engine-manifest.json"), `${JSON.stringify({
+      engineVersion: manifest.engineVersion,
+      engineCommitSha: manifest.engineCommitSha,
+      sha256: manifest.cli.sha256,
+      ...(manifest.agentAssetsSha256 ? { agentAssetsSha256: manifest.agentAssetsSha256 } : {}),
+    }, null, 2)}\n`);
     const skills = installSkills(skillsSource, { env });
-    return { engineVersion: manifest.engineVersion, engineCommitSha: manifest.engineCommitSha, dataRoot, skills };
+    return { engineVersion: manifest.engineVersion, engineCommitSha: manifest.engineCommitSha, dataRoot, agentAssets, skills };
   } catch (error) {
     rmSync(engineDirectory, { recursive: true, force: true });
     rmSync(dispatcherTarget, { force: true });

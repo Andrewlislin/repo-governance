@@ -19,6 +19,8 @@ function fixture() {
   write(join(root, "dist", cliName), "cli", 0o755);
   write(join(root, "dist", dispatcherName), "dispatcher", 0o755);
   write(join(root, "adapters", "codex", "skills", "example-skill", "SKILL.md"), "---\nname: example-skill\ndescription: Example source install fixture.\n---\n");
+  write(join(root, "adapters", "codex", "adapter-contract.json"), "{}\n");
+  write(join(root, "adapters", "claude-code", "CLAUDE.md"), "# Example Claude adapter\n");
   write(join(root, "playbooks", "example-skill.md"), "# Example shared playbook\n");
   return { root, cliName, dispatcherName, commitSha: "b".repeat(40) };
 }
@@ -45,7 +47,7 @@ test("package.json exposes install:local", () => {
   assert.equal(packageJson.scripts["install:local"], "node scripts/install-local.mjs");
 });
 
-test("local source install copies CLI, dispatcher, manifests, checksums, and Skills", () => {
+test("local source install copies CLI, dispatcher, manifests, versioned Agent assets, and Skills", () => {
   const { root, cliName, dispatcherName, commitSha } = fixture();
   const env = isolatedEnv();
   const fake = runner({ commitSha });
@@ -58,6 +60,8 @@ test("local source install copies CLI, dispatcher, manifests, checksums, and Ski
   assert.ok(existsSync(join(dataRoot, dispatcherName)));
   assert.ok(existsSync(join(result.skills.root, "example-skill", "SKILL.md")));
   assert.ok(existsSync(join(result.skills.root, "example-skill", "references", "playbook.md")));
+  assert.ok(existsSync(join(result.agentAssets, "playbooks", "example-skill.md")));
+  assert.ok(existsSync(join(result.agentAssets, "adapters", "claude-code", "CLAUDE.md")));
   assert.deepEqual(fake.calls.filter(([command]) => command === "npm"), [["npm", "run", "check"], ["npm", "run", "build:sea"]]);
 
   const manifest = JSON.parse(readFileSync(join(engineDirectory, "local-engine-manifest.json"), "utf8"));
@@ -68,9 +72,15 @@ test("local source install copies CLI, dispatcher, manifests, checksums, and Ski
   assert.equal(manifest.dispatcher.sha256, digest("dispatcher"));
   assert.equal(manifest.skillsSha256, treeDigest(join(root, "adapters", "codex", "skills")));
   assert.equal(manifest.playbooksSha256, treeDigest(join(root, "playbooks")));
+  assert.equal(manifest.agentAssetsSha256, treeDigest(result.agentAssets));
 
   const dispatcherManifest = JSON.parse(readFileSync(join(engineDirectory, "engine-manifest.json"), "utf8"));
-  assert.deepEqual(dispatcherManifest, { engineVersion: "1.0.0", engineCommitSha: commitSha, sha256: digest("cli") });
+  assert.deepEqual(dispatcherManifest, {
+    engineVersion: "1.0.0",
+    engineCommitSha: commitSha,
+    sha256: digest("cli"),
+    agentAssetsSha256: manifest.agentAssetsSha256,
+  });
   assert.match(readFileSync(join(engineDirectory, "SHA256SUMS"), "utf8"), new RegExp(`${digest("cli")}  ${cliName}`));
 });
 

@@ -77,6 +77,7 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   assert.match(releasePackager, /"policy-assets", "presets"/);
   assert.match(releasePackager, /"policy-assets", "schemas"/);
   assert.match(releasePackager, /agentAssetsSha256/);
+  assert.match(releasePackager, /adaptersSource: join\(root, "adapters"\)/);
   assert.ok(steps.some((step) => step.name === "Install" && step.run === "npm ci"));
   assert.ok(steps.some((step) => step.name === "Static checks" && step.run === "npm run check:static"));
   assert.ok(steps.some((step) => step.name === "Full tests" && step.if === "runner.os != 'Windows'" && step.run === "npm test"));
@@ -94,6 +95,8 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   assert.match(sourceChecker, /fileURLToPath\(new URL\("\.\.\/src", import\.meta\.url\)\)/);
   assert.match(seaBuilder, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
   assert.match(seaBuilder, /shell: process\.platform === "win32"/);
+  assert.match(seaBuilder, /postjectArgs\.push\("--macho-segment-name", "NODE_SEA"\)/);
+  assert.match(seaBuilder, /smokeTestExecutable\(target\.name, executable\)/);
   assert.match(releasePackager, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
   assert.match(indexWriter, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
   for (const script of [sourceChecker, seaBuilder, releasePackager, indexWriter]) {
