@@ -14,6 +14,7 @@ const expected = [
   "classify-test-tier",
   "plan-change-test-impact",
   "protect-public-commands",
+  "repo-governance-agent-gate",
   "triage-ci-failure",
 ];
 
@@ -50,6 +51,7 @@ test("Skills delegate hard decisions to CLI structured output", () => {
   const combined = expected.map((name) => readFileSync(join(root, name, "SKILL.md"), "utf8")).join("\n");
   assert.match(combined, /repo-governance check --json/);
   assert.match(combined, /prepare-pr --json/);
+  assert.match(combined, /preflight --json/);
   assert.doesNotMatch(combined, /definitionHash|businessPaths|createHash|globToRegExp/);
   for (const name of expected) assert.ok(readFileSync(join(playbooks, `${name}.md`), "utf8").length > 200);
 });

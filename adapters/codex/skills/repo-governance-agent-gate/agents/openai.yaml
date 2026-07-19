@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repository Governance Agent Gate"
+  short_description: "Gate repository writes through preflight JSON"
+  default_prompt: "Use $repo-governance-agent-gate before starting repository-changing work."

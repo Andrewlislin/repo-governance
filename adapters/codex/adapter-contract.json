@@ -4,6 +4,16 @@
   "reportSchemaVersion": 1,
   "playbooks": [
     {
+      "id": "repo-governance-agent-gate",
+      "commandTemplates": [
+        "repo-governance preflight --json",
+        "repo-governance prepare-pr --json"
+      ],
+      "fixture": "preflight",
+      "consumes": ["status", "repoState", "recommendedAction", "policy", "inspection", "cwd", "repoPath"],
+      "classificationLabels": ["managed", "not_git_repo", "unmanaged", "misconfigured", "blocked"]
+    },
+    {
       "id": "bootstrap-repo-governance",
       "commandTemplates": [
         "repo-governance bootstrap --preset <preset> --json",

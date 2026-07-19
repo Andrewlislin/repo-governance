@@ -26,12 +26,16 @@ function hasPath(value, dottedPath) {
   });
 }
 
-test("Codex and Claude Code declare the same CLI, report, Playbook, and label contract", () => {
+test("shared adapters stay consistent while the staged Codex gate remains explicit", () => {
   const codex = contract(codexRoot);
   const claude = contract(claudeRoot);
   assert.equal(codex.adapter, "codex");
   assert.equal(claude.adapter, "claude-code");
-  assert.deepEqual(neutral(codex), neutral(claude));
+  const gate = codex.playbooks.find(({ id }) => id === "repo-governance-agent-gate");
+  assert.ok(gate);
+  assert.equal(claude.playbooks.some(({ id }) => id === gate.id), false);
+  const codexShared = { ...neutral(codex), playbooks: codex.playbooks.filter(({ id }) => id !== gate.id) };
+  assert.deepEqual(codexShared, neutral(claude));
   assert.equal(codex.schemaVersion, 1);
   assert.equal(codex.reportSchemaVersion, 1);
   for (const playbook of codex.playbooks) {
@@ -50,6 +54,9 @@ test("both adapter declarations consume the same versioned report fixtures", () 
     }
   }
   assert.ok(fixtures["prepare-pr"].requiredTests.every((entry) => entry.semanticCoverageVerified === false));
+  assert.equal(fixtures.preflight.ok, true);
+  assert.equal(fixtures.preflight.status, "needs_attention");
+  assert.equal(fixtures.preflight.repoState, "unmanaged");
 });
 
 test("Claude prompt templates map one-to-one to canonical Playbooks and contract IDs", () => {

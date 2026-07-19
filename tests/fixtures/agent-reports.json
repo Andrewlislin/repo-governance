@@ -1,4 +1,36 @@
 {
+  "preflight": {
+    "schemaVersion": 1,
+    "command": "preflight",
+    "ok": true,
+    "status": "needs_attention",
+    "exitCode": 1,
+    "cwd": "/workspace/service",
+    "repoPath": "/workspace/service",
+    "repoState": "unmanaged",
+    "inspection": {
+      "gitRepository": true,
+      "configPresent": false,
+      "configValid": null,
+      "engineAligned": null,
+      "hookConnected": null
+    },
+    "policy": {
+      "source": "built-in-defaults",
+      "autoPreflight": true,
+      "autoBootstrap": false,
+      "matchedPathPrefix": null,
+      "preset": null
+    },
+    "recommendedAction": {
+      "id": "bootstrap-required",
+      "command": "repo-governance bootstrap --preset <preset> --json",
+      "preset": null,
+      "requiresPreset": true,
+      "requiresConfirmation": true
+    },
+    "nextActions": []
+  },
   "bootstrap": {
     "schemaVersion": 1,
     "command": "bootstrap",

@@ -48,7 +48,7 @@
     {
       "id": "v1.1.1-pr-2-codex-gate",
       "description": "Shared Agent gate Playbook, Codex Skill adapter, and optional explicitly enabled Codex hook templates",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.1.1-pr-3-claude-gate",

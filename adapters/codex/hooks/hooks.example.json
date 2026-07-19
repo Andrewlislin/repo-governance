@@ -1,0 +1,33 @@
+{
+  "description": "Optional repo-governance Agent gate. Replace the runner path, install explicitly, then review and trust the exact Hook definitions in Codex.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/absolute/path/to/installed/agent-assets/adapters/codex/hooks/repo-governance-agent-gate.mjs\"",
+            "commandWindows": "node \"C:\\\\absolute\\\\path\\\\to\\\\installed\\\\agent-assets\\\\adapters\\\\codex\\\\hooks\\\\repo-governance-agent-gate.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Checking repository governance"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/absolute/path/to/installed/agent-assets/adapters/codex/hooks/repo-governance-agent-gate.mjs\"",
+            "commandWindows": "node \"C:\\\\absolute\\\\path\\\\to\\\\installed\\\\agent-assets\\\\adapters\\\\codex\\\\hooks\\\\repo-governance-agent-gate.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Checking repository governance before editing"
+          }
+        ]
+      }
+    ]
+  }
+}
