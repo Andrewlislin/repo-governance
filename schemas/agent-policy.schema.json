@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Andrewlislin/repo-governance/schemas/agent-policy.schema.json",
+  "title": "repo-governance Agent authorization policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "autoPreflight", "autoBootstrap", "defaultPresetByPath"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "autoPreflight": { "type": "boolean" },
+    "autoBootstrap": { "type": "boolean" },
+    "defaultPresetByPath": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pathPrefix", "preset"],
+        "properties": {
+          "pathPrefix": { "type": "string", "minLength": 1, "pattern": "^(?:/|[A-Za-z]:[\\\\/])" },
+          "preset": { "type": "string", "pattern": "^[a-z][a-z0-9-]+$" }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "autoBootstrap": { "const": true } }, "required": ["autoBootstrap"] },
+      "then": {
+        "properties": {
+          "autoPreflight": { "const": true },
+          "defaultPresetByPath": { "minItems": 1 }
+        }
+      }
+    }
+  ]
+}

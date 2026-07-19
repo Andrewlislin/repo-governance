@@ -100,7 +100,6 @@ test("non-Git and unmanaged repositories are successful classifications that req
 test("a managed repository requires valid config, aligned engine, and the effective current hook", () => {
   const { repo, env } = managedRepository();
   const beforeRepo = directorySnapshot(repo);
-  write(join(env.HOME, ".repo-governance-agent.json"), "user policy remains untouched\n");
   const beforeHome = directorySnapshot(env.HOME);
   const report = preflightRepository(repo, { env, identity });
   assert.equal(report.ok, true);

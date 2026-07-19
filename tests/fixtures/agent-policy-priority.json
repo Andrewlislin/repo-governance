@@ -1,0 +1,9 @@
+{
+  "repoPath": "/workspace/projects/web/app",
+  "entries": [
+    { "pathPrefix": "/workspace", "preset": "node-library" },
+    { "pathPrefix": "/workspace/projects/web", "preset": "react-web" },
+    { "pathPrefix": "/workspace/projects", "preset": "node-service" }
+  ],
+  "expected": { "pathPrefix": "/workspace/projects/web", "preset": "react-web" }
+}

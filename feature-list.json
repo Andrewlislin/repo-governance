@@ -58,7 +58,7 @@
     {
       "id": "v1.1.1-pr-4-agent-policy",
       "description": "User-level Agent authorization policy with deterministic path matching and explicit preset constraints",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.1.1-pr-5-release",

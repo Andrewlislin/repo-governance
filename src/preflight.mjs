@@ -1,19 +1,12 @@
 import { lstatSync, realpathSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { DEFAULT_AGENT_POLICY, resolveAgentPolicy } from "./agent-policy.mjs";
 import { CONFIG_FILE, readConfig } from "./config.mjs";
 import { asFailure, GovernanceError } from "./errors.mjs";
 import { inspectEffectiveRepositoryHook } from "./hooks.mjs";
 import { inspectLockedRuntime } from "./locked-engine.mjs";
 import { runGit } from "./process.mjs";
 import { runtimeIdentity } from "./version.mjs";
-
-const DEFAULT_POLICY = Object.freeze({
-  source: "built-in-defaults",
-  autoPreflight: true,
-  autoBootstrap: false,
-  matchedPathPrefix: null,
-  preset: null,
-});
 
 function action(id, { command, preset = null, requiresPreset = false, requiresConfirmation = false } = {}) {
   return { id, ...(command ? { command } : {}), preset, requiresPreset, requiresConfirmation };
@@ -24,7 +17,7 @@ function baseReport(cwd, overrides) {
     schemaVersion: 1,
     command: "preflight",
     cwd,
-    policy: { ...DEFAULT_POLICY },
+    policy: { ...DEFAULT_AGENT_POLICY },
     nextActions: [],
     ...overrides,
   };
@@ -77,7 +70,7 @@ function configExists(repoPath) {
   }
 }
 
-function misconfigured(cwd, repoPath, facts, error, recommendedAction) {
+function misconfigured(cwd, repoPath, facts, policy, error, recommendedAction) {
   return baseReport(cwd, {
     ok: true,
     status: "needs_attention",
@@ -85,13 +78,14 @@ function misconfigured(cwd, repoPath, facts, error, recommendedAction) {
     repoPath,
     repoState: "misconfigured",
     inspection: facts,
+    policy,
     recommendedAction,
     error,
     message: `Repository governance is misconfigured: ${error.code}: ${error.message}`,
   });
 }
 
-function blocked(cwd, repoPath, facts, error) {
+function blocked(cwd, repoPath, facts, policy, error) {
   return baseReport(cwd, {
     ok: false,
     status: "blocked",
@@ -99,6 +93,7 @@ function blocked(cwd, repoPath, facts, error) {
     repoPath,
     repoState: "blocked",
     inspection: facts,
+    policy,
     recommendedAction: action("manual-diagnosis-required", { requiresConfirmation: true }),
     error,
     message: `Preflight could not inspect the repository safely: ${error.code}: ${error.message}`,
@@ -113,9 +108,10 @@ export function preflightRepository(invocationCwd = process.cwd(), {
   let cwd = resolve(invocationCwd);
   let repoPath = null;
   let facts = inspection();
+  let policy = { ...DEFAULT_AGENT_POLICY };
   try {
     cwd = normalizeDirectory(invocationCwd);
-    if (invocationError) return blocked(cwd, null, facts, asFailure(invocationError).error);
+    if (invocationError) return blocked(cwd, null, facts, policy, asFailure(invocationError).error);
     repoPath = findRepositoryRoot(cwd, env);
     if (!repoPath) {
       return baseReport(cwd, {
@@ -130,7 +126,14 @@ export function preflightRepository(invocationCwd = process.cwd(), {
       });
     }
     facts = inspection({ gitRepository: true });
+    try {
+      policy = resolveAgentPolicy(repoPath, { env });
+    } catch (error) {
+      policy = { ...DEFAULT_AGENT_POLICY, source: "user-policy", autoPreflight: false };
+      throw error;
+    }
     if (!configExists(repoPath)) {
+      const preset = policy.preset;
       return baseReport(cwd, {
         ok: true,
         status: "needs_attention",
@@ -138,12 +141,16 @@ export function preflightRepository(invocationCwd = process.cwd(), {
         repoPath,
         repoState: "unmanaged",
         inspection: facts,
+        policy,
         recommendedAction: action("bootstrap-required", {
-          command: "repo-governance bootstrap --preset <preset> --json",
-          requiresPreset: true,
-          requiresConfirmation: true,
+          command: `repo-governance bootstrap --preset ${preset || "<preset>"} --json`,
+          preset,
+          requiresPreset: preset === null,
+          requiresConfirmation: preset === null || !policy.autoBootstrap,
         }),
-        message: "The Git repository is not governed. Select an explicit preset and confirm bootstrap before writing repository files.",
+        message: preset
+          ? "The Git repository is not governed. The user policy selected an explicit preset; bootstrap must complete before writing repository files."
+          : "The Git repository is not governed. Select an explicit preset and confirm bootstrap before writing repository files.",
       });
     }
     facts = inspection({ gitRepository: true, configPresent: true });
@@ -153,9 +160,9 @@ export function preflightRepository(invocationCwd = process.cwd(), {
       facts.configValid = true;
     } catch (error) {
       const failure = asFailure(error);
-      if (failure.error.details?.unreadable) return blocked(cwd, repoPath, facts, failure.error);
+      if (failure.error.details?.unreadable) return blocked(cwd, repoPath, facts, policy, failure.error);
       facts.configValid = false;
-      return misconfigured(cwd, repoPath, facts, failure.error, action("configuration-repair-required", { requiresConfirmation: true }));
+      return misconfigured(cwd, repoPath, facts, policy, failure.error, action("configuration-repair-required", { requiresConfirmation: true }));
     }
 
     const engine = inspectLockedRuntime(
@@ -171,6 +178,7 @@ export function preflightRepository(invocationCwd = process.cwd(), {
         cwd,
         repoPath,
         facts,
+        policy,
         engine.error,
         action(engine.aligned === null ? "verified-engine-required" : "engine-repair-required", {
           command: "repo-governance update --bundle <verified-directory>",
@@ -188,6 +196,7 @@ export function preflightRepository(invocationCwd = process.cwd(), {
         cwd,
         repoPath,
         facts,
+        policy,
         error,
         action("hook-reconnect-required", { command: "repo-governance hooks doctor --json", requiresConfirmation: true }),
       );
@@ -199,11 +208,12 @@ export function preflightRepository(invocationCwd = process.cwd(), {
       repoPath,
       repoState: "managed",
       inspection: facts,
+      policy,
       recommendedAction: action("none"),
       message: "Repository governance preflight succeeded; the repository is managed and ready for work.",
     });
   } catch (error) {
     const failure = asFailure(error);
-    return blocked(cwd, repoPath, facts, failure.error);
+    return blocked(cwd, repoPath, facts, policy, failure.error);
   }
 }
