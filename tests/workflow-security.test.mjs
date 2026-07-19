@@ -47,11 +47,13 @@ test("central CI runs PR governance only on pull request events", () => {
   assert.equal(workflow.jobs.test.if, undefined);
 });
 
-test("central CI governance ref matches the locked engine commit", () => {
+test("central CI and package release match the locked engine identity", () => {
   const config = JSON.parse(readFileSync(join(root, ".repo-governance.json"), "utf8"));
+  const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const workflow = parse(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8"));
   const governanceRef = `Andrewlislin/repo-governance/.github/workflows/governance.yml@${config.engineCommitSha}`;
   const reporterRef = `uses:Andrewlislin/repo-governance/.github/workflows/reporter.yml@${config.engineCommitSha}`;
+  assert.equal(config.engineVersion, packageJson.version);
   assert.equal(workflow.jobs.governance.uses, governanceRef);
   assert.ok(config.workflowAllowedEntries.includes(`uses:${governanceRef}`));
   assert.ok(config.workflowAllowedEntries.includes(reporterRef));
