@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/absolute/path/to/installed/agent-assets/adapters/claude-code/hooks/repo-governance-agent-gate.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Checking repository governance"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/absolute/path/to/installed/agent-assets/adapters/claude-code/hooks/repo-governance-agent-gate.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Checking repository governance before editing"
+          }
+        ]
+      }
+    ]
+  }
+}

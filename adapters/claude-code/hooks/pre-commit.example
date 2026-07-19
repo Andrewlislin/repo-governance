@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Optional template: copy explicitly into the target repository's hooks directory.
+# The CLI remains the only source of the governance decision.
+exec repo-governance preflight --json

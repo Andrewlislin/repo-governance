@@ -26,16 +26,12 @@ function hasPath(value, dottedPath) {
   });
 }
 
-test("shared adapters stay consistent while the staged Codex gate remains explicit", () => {
+test("Codex and Claude adapters declare the same structured decision contract", () => {
   const codex = contract(codexRoot);
   const claude = contract(claudeRoot);
   assert.equal(codex.adapter, "codex");
   assert.equal(claude.adapter, "claude-code");
-  const gate = codex.playbooks.find(({ id }) => id === "repo-governance-agent-gate");
-  assert.ok(gate);
-  assert.equal(claude.playbooks.some(({ id }) => id === gate.id), false);
-  const codexShared = { ...neutral(codex), playbooks: codex.playbooks.filter(({ id }) => id !== gate.id) };
-  assert.deepEqual(codexShared, neutral(claude));
+  assert.deepEqual(neutral(codex), neutral(claude));
   assert.equal(codex.schemaVersion, 1);
   assert.equal(codex.reportSchemaVersion, 1);
   for (const playbook of codex.playbooks) {

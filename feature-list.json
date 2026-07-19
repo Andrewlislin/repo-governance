@@ -53,7 +53,7 @@
     {
       "id": "v1.1.1-pr-3-claude-gate",
       "description": "Claude Code gate command, optional hook templates, and cross-adapter decision contract consistency",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.1.1-pr-4-agent-policy",
