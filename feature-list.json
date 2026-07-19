@@ -39,6 +39,31 @@
       "id": "v1.1-pr-5-claude-adapter",
       "description": "Claude Code adapter and cross-agent contract consistency",
       "passes": true
+    },
+    {
+      "id": "v1.1.1-pr-1-preflight",
+      "description": "Read-only preflight classification, stable report contract, locked-engine inspection, and strict hook diagnosis",
+      "passes": false
+    },
+    {
+      "id": "v1.1.1-pr-2-codex-gate",
+      "description": "Shared Agent gate Playbook, Codex Skill adapter, and optional explicitly enabled Codex hook templates",
+      "passes": false
+    },
+    {
+      "id": "v1.1.1-pr-3-claude-gate",
+      "description": "Claude Code gate command, optional hook templates, and cross-adapter decision contract consistency",
+      "passes": false
+    },
+    {
+      "id": "v1.1.1-pr-4-agent-policy",
+      "description": "User-level Agent authorization policy with deterministic path matching and explicit preset constraints",
+      "passes": false
+    },
+    {
+      "id": "v1.1.1-pr-5-release",
+      "description": "Bilingual documentation, packaging, version 1.1.1 release metadata, and end-to-end acceptance",
+      "passes": false
     }
   ]
 }
