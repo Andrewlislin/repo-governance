@@ -19,9 +19,13 @@ function fixture() {
   write(join(root, "dist", cliName), "cli", 0o755);
   write(join(root, "dist", dispatcherName), "dispatcher", 0o755);
   write(join(root, "adapters", "codex", "skills", "example-skill", "SKILL.md"), "---\nname: example-skill\ndescription: Example source install fixture.\n---\n");
+  write(join(root, "adapters", "codex", "skills", "repo-governance-agent-gate", "SKILL.md"), "---\nname: repo-governance-agent-gate\ndescription: Example gate fixture for source installation.\n---\n");
   write(join(root, "adapters", "codex", "adapter-contract.json"), "{}\n");
   write(join(root, "adapters", "claude-code", "CLAUDE.md"), "# Example Claude adapter\n");
+  write(join(root, "adapters", "claude-code", "commands", "repo-governance-agent-gate.md"), "# Gate command\n");
+  write(join(root, "adapters", "claude-code", "hooks", "settings.example.json"), "{}\n");
   write(join(root, "playbooks", "example-skill.md"), "# Example shared playbook\n");
+  write(join(root, "playbooks", "repo-governance-agent-gate.md"), "# Example gate playbook\n");
   return { root, cliName, dispatcherName, commitSha: "b".repeat(40) };
 }
 
@@ -62,6 +66,8 @@ test("local source install copies CLI, dispatcher, manifests, versioned Agent as
   assert.ok(existsSync(join(result.skills.root, "example-skill", "references", "playbook.md")));
   assert.ok(existsSync(join(result.agentAssets, "playbooks", "example-skill.md")));
   assert.ok(existsSync(join(result.agentAssets, "adapters", "claude-code", "CLAUDE.md")));
+  assert.ok(existsSync(join(result.agentAssets, "adapters", "claude-code", "commands", "repo-governance-agent-gate.md")));
+  assert.ok(existsSync(join(result.agentAssets, "adapters", "claude-code", "hooks", "settings.example.json")));
   assert.deepEqual(fake.calls.filter(([command]) => command === "npm"), [["npm", "run", "check"], ["npm", "run", "build:sea"]]);
 
   const manifest = JSON.parse(readFileSync(join(engineDirectory, "local-engine-manifest.json"), "utf8"));

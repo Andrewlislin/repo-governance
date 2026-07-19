@@ -6,7 +6,7 @@ import { bootstrapRepository } from "../src/bootstrap.mjs";
 import { governanceDataRoot } from "../src/paths.mjs";
 import { commitAll, git, initGitRepo, temporaryDirectory, write } from "./helpers.mjs";
 
-const identity = { version: "1.1.0", commitSha: "a".repeat(40) };
+const identity = { version: "1.1.1", commitSha: "a".repeat(40) };
 
 function isolatedEnv() {
   const home = temporaryDirectory("repo-governance-bootstrap-home-");

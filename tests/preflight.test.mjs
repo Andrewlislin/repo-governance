@@ -8,7 +8,7 @@ import { governanceDataRoot } from "../src/paths.mjs";
 import { preflightRepository } from "../src/preflight.mjs";
 import { commitAll, initGitRepo, temporaryDirectory, write } from "./helpers.mjs";
 
-const identity = { version: "1.1.0", commitSha: "a".repeat(40) };
+const identity = { version: "1.1.1", commitSha: "a".repeat(40) };
 
 function isolatedEnv() {
   const home = temporaryDirectory("repo-governance-preflight-home-");

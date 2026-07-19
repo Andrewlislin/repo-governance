@@ -14,10 +14,24 @@ const extension = process.platform === "win32" ? ".exe" : "";
 
 function smokeTestExecutable(name, executable) {
   if (name === "repo-governance") {
-    const result = spawnSync(executable, ["version", "--json"], { encoding: "utf8" });
-    if (result.status !== 0) throw new Error(`SEA CLI smoke test failed: ${(result.stderr || result.stdout || "no output").trim()}`);
-    const identity = JSON.parse(result.stdout);
+    const versionResult = spawnSync(executable, ["version", "--json"], { encoding: "utf8" });
+    if (versionResult.status !== 0) throw new Error(`SEA CLI version smoke test failed: ${(versionResult.stderr || versionResult.stdout || "no output").trim()}`);
+    const identity = JSON.parse(versionResult.stdout);
     if (identity.version !== version || identity.commitSha !== commitSha) throw new Error("SEA CLI identity does not match the build inputs.");
+
+    const helpResult = spawnSync(executable, ["help"], { encoding: "utf8" });
+    if (helpResult.status !== 0 || !helpResult.stdout.includes("preflight [--json]")) throw new Error("SEA CLI help does not expose preflight.");
+
+    const cwd = mkdtempSync(join(tmpdir(), "repo-governance-sea-preflight-"));
+    try {
+      const preflightResult = spawnSync(executable, ["preflight", "--json"], { cwd, encoding: "utf8" });
+      const report = JSON.parse(preflightResult.stdout || "{}");
+      if (preflightResult.status !== 1 || report.repoState !== "not_git_repo" || report.exitCode !== 1) {
+        throw new Error("SEA CLI preflight smoke test did not return the stable non-Git classification.");
+      }
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
     return;
   }
   const cwd = mkdtempSync(join(tmpdir(), "repo-governance-sea-smoke-"));

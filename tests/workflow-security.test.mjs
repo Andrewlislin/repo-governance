@@ -78,6 +78,7 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   assert.match(releasePackager, /"policy-assets", "schemas"/);
   assert.match(releasePackager, /agentAssetsSha256/);
   assert.match(releasePackager, /adaptersSource: join\(root, "adapters"\)/);
+  assert.doesNotMatch(releasePackager, /\.repo-governance-agent\.json|AGENT_POLICY_FILE/);
   assert.ok(steps.some((step) => step.name === "Install" && step.run === "npm ci"));
   assert.ok(steps.some((step) => step.name === "Static checks" && step.run === "npm run check:static"));
   assert.ok(steps.some((step) => step.name === "Full tests" && step.if === "runner.os != 'Windows'" && step.run === "npm test"));
@@ -97,9 +98,31 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   assert.match(seaBuilder, /shell: process\.platform === "win32"/);
   assert.match(seaBuilder, /postjectArgs\.push\("--macho-segment-name", "NODE_SEA"\)/);
   assert.match(seaBuilder, /smokeTestExecutable\(target\.name, executable\)/);
+  assert.match(seaBuilder, /\["preflight", "--json"\]/);
+  assert.match(seaBuilder, /report\.repoState !== "not_git_repo"/);
   assert.match(releasePackager, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
   assert.match(indexWriter, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
   for (const script of [sourceChecker, seaBuilder, releasePackager, indexWriter]) {
     assert.doesNotMatch(script, /new URL\([^)]+import\.meta\.url\)\.pathname/);
   }
+});
+
+test("v1.1.1 release inputs contain every Agent gate and policy asset", () => {
+  const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const packageLock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
+  assert.equal(packageJson.version, "1.1.1");
+  assert.equal(packageLock.version, packageJson.version);
+  assert.equal(packageLock.packages[""].version, packageJson.version);
+
+  for (const path of [
+    "schemas/agent-policy.schema.json",
+    "playbooks/repo-governance-agent-gate.md",
+    "adapters/codex/skills/repo-governance-agent-gate/SKILL.md",
+    "adapters/codex/hooks/hooks.example.json",
+    "adapters/codex/hooks/repo-governance-agent-gate.mjs",
+    "adapters/claude-code/commands/repo-governance-agent-gate.md",
+    "adapters/claude-code/hooks/settings.example.json",
+    "adapters/claude-code/hooks/pre-commit.example",
+    "adapters/claude-code/hooks/repo-governance-agent-gate.mjs",
+  ]) assert.equal(readFileSync(join(root, path), "utf8").length > 0, true, `missing release input ${path}`);
 });

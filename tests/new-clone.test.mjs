@@ -6,7 +6,7 @@ import { cloneRepository } from "../src/clone.mjs";
 import { newRepository } from "../src/new.mjs";
 import { commitAll, git, initGitRepo, temporaryDirectory, write } from "./helpers.mjs";
 
-const identity = { version: "1.1.0", commitSha: "a".repeat(40) };
+const identity = { version: "1.1.1", commitSha: "a".repeat(40) };
 
 function isolatedEnv({ identityConfigured = true } = {}) {
   const home = temporaryDirectory("repo-governance-command-home-");

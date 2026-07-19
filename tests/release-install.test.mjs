@@ -22,11 +22,16 @@ function bundle(overrides = {}) {
   write(join(root, cliName), cli, 0o755);
   write(join(root, dispatcherName), dispatcher, 0o755);
   write(join(root, "skills", "example-skill", "SKILL.md"), "---\nname: example-skill\ndescription: Example installation fixture used for release tests.\n---\n");
+  write(join(root, "skills", "repo-governance-agent-gate", "SKILL.md"), "---\nname: repo-governance-agent-gate\ndescription: Example gate fixture used for release tests.\n---\n");
   write(join(root, "policy-assets", "presets", "example.json"), "{}\n");
   write(join(root, "policy-assets", "schemas", "example.schema.json"), "{}\n");
+  write(join(root, "policy-assets", "schemas", "agent-policy.schema.json"), "{}\n");
   write(join(root, "agent-assets", "playbooks", "example.md"), "# Example\n");
+  write(join(root, "agent-assets", "playbooks", "repo-governance-agent-gate.md"), "# Gate\n");
   write(join(root, "agent-assets", "adapters", "codex", "adapter-contract.json"), "{}\n");
   write(join(root, "agent-assets", "adapters", "claude-code", "CLAUDE.md"), "# Example Claude adapter\n");
+  write(join(root, "agent-assets", "adapters", "claude-code", "commands", "repo-governance-agent-gate.md"), "# Gate command\n");
+  write(join(root, "agent-assets", "adapters", "claude-code", "hooks", "settings.example.json"), "{}\n");
   const manifest = {
     schemaVersion: 1,
     engineVersion: "1.0.0",
@@ -71,6 +76,8 @@ test("verified bundle installs CLI, dispatcher, versioned Agent assets, and Skil
   assert.ok(existsSync(join(result.skills.root, "example-skill", "SKILL.md")));
   assert.ok(existsSync(join(result.agentAssets, "playbooks", "example.md")));
   assert.ok(existsSync(join(result.agentAssets, "adapters", "claude-code", "CLAUDE.md")));
+  assert.ok(existsSync(join(result.agentAssets, "adapters", "claude-code", "commands", "repo-governance-agent-gate.md")));
+  assert.ok(existsSync(join(result.agentAssets, "adapters", "claude-code", "hooks", "settings.example.json")));
   const engineManifest = JSON.parse(readFileSync(join(result.dataRoot, "engines", manifest.engineCommitSha, "engine-manifest.json"), "utf8"));
   assert.equal(engineManifest.agentAssetsSha256, manifest.agentAssetsSha256);
   assert.equal(result.dataRoot, join(env.XDG_DATA_HOME, "repo-governance"));

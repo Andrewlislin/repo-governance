@@ -6,7 +6,7 @@ import { matchAgentPolicy, resolveAgentPolicy } from "../src/agent-policy.mjs";
 import { preflightRepository } from "../src/preflight.mjs";
 import { commitAll, initGitRepo, temporaryDirectory, write } from "./helpers.mjs";
 
-const identity = { version: "1.1.0", commitSha: "a".repeat(40) };
+const identity = { version: "1.1.1", commitSha: "a".repeat(40) };
 
 function fixture() {
   const home = temporaryDirectory("repo-governance-agent-policy-home-");

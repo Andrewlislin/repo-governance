@@ -5,7 +5,7 @@ import test from "node:test";
 import { main } from "../src/cli.mjs";
 import { baseConfig, commitAll, git, initGitRepo, temporaryDirectory, write, writeConfig } from "./helpers.mjs";
 
-const identity = { version: "1.1.0", commitSha: "a".repeat(40) };
+const identity = { version: "1.1.1", commitSha: "a".repeat(40) };
 
 function sink() {
   let value = "";

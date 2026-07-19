@@ -32,6 +32,20 @@ This builds the local engine, installs it into the standard repo-governance data
 
 The installed pre-push hook is thin and offline. It invokes a stable dispatcher in the platform data directory; the dispatcher reads `engineCommitSha` from `.repo-governance.json`, verifies the locked executable, and then runs `repo-governance check`. Missing or corrupt engines fail with an explicit `repo-governance update` instruction.
 
+## Agent preflight and automatic adoption policy
+
+Before an Agent changes repository files, runs task tests, commits, or prepares a pull request, run:
+
+```sh
+repo-governance preflight --json
+```
+
+The command is offline and read-only. `ok` says whether inspection completed, `status` describes the workflow result, and `exitCode` is the shell-compatible `0`/`1`/`2` outcome; these fields are independent. Repository writes are allowed only when `status` is `succeeded` and `repoState` is `managed`. In particular, `ok: true` with `status: "needs_attention"` is not write permission.
+
+An optional `~/.repo-governance-agent.json` can map normalized real path prefixes to explicit presets. Longest-prefix matching is deterministic, equal-priority conflicts block, and `autoBootstrap` can only waive repeated confirmation for `bootstrap` when a matching preset already exists. It never authorizes preset inference, `github enforce --confirm`, pull request creation, comments, ruleset changes, or other remote writes. See [Agent automatic adoption](docs/agent-auto-adoption.md) for the schema, lifecycle, and complete state examples.
+
+The three gates have separate jobs: Agent preflight discovers whether work may start; the repository's offline Git pre-push hook defends every governed push; `prepare-pr` checks the clean committed change set before pull request work. Optional Codex and Claude Code lifecycle Hooks surface the preflight decision earlier, but are explicit trusted guardrails rather than a complete enforcement boundary.
+
 ## Quick Start for Existing Repositories
 
 Install a verified, version-pinned release first, then run one explicit adoption command:
@@ -56,7 +70,7 @@ repo-governance clone https://example.com/team/project.git --preset node-service
 
 `new` creates a governance-only Git repository, commits only the generated governance files, and runs the standard check. It does not generate application code. `clone` preserves the cloned history and leaves the generated governance files uncommitted for review. A clone, bootstrap, check, or Git identity failure removes only the target directory created by that invocation.
 
-Native `git clone` is never intercepted. Developers must use `repo-governance clone` to receive the combined flow.
+Native `git clone` and `git init` are never intercepted. Developers must use the explicit `repo-governance clone`, `new`, or `bootstrap` entry point to receive the combined flow. The CLI never guesses a preset, silently bootstraps a repository, or automatically writes GitHub state.
 
 ## Preparing a Pull Request
 
@@ -100,11 +114,11 @@ Changing command text without updating its contract fails. Accepting new semanti
 
 ## Using with Codex and Claude Code
 
-Agent-neutral advisory knowledge lives in `playbooks/`. Thin Codex wrappers live in `adapters/codex/skills/`; Claude Code receives `CLAUDE.md` and five matching prompt templates under `adapters/claude-code/commands/`. Both adapters declare the same CLI commands, JSON report version, Playbook IDs, consumed fields, and advisory labels. They invoke the version-pinned CLI and interpret its JSON rather than reimplementing hard rules.
+Agent-neutral advisory knowledge lives in `playbooks/`. Six thin Codex wrappers live in `adapters/codex/skills/`; Claude Code receives `CLAUDE.md` and six matching prompt templates under `adapters/claude-code/commands/`. Both adapters declare the same CLI commands, JSON report version, Playbook IDs, consumed fields, and advisory labels. They invoke the version-pinned CLI and interpret its JSON rather than reimplementing hard rules or reading the user policy themselves.
 
 CI triage classifies a failure as `true-bug`, `stale-test`, `stale-workflow`, `wrong-ci-tier`, or `insufficient-evidence` before suggesting a fix. These are advisory labels; CLI RG findings remain the deterministic facts.
 
-Release and local-source installation keep the canonical Playbooks and both adapter trees under the installed engine's version-locked `agent-assets/` directory. Codex Skills are also installed into `CODEX_HOME`; selected Claude templates can be copied into a repository's `.claude/commands/`. See [Agent adapters](docs/agent-adapters.md).
+Release and local-source installation keep the canonical Playbooks and both adapter trees, including optional Hook templates, under the installed engine's version-locked `agent-assets/` directory. Codex Skills are also installed into `CODEX_HOME`; selected Claude templates can be copied explicitly into a repository's `.claude/commands/`. See [Agent adapters](docs/agent-adapters.md).
 
 ## GitHub enforcement and waiver approvals
 
@@ -116,7 +130,7 @@ Remote RG005 validation reads live reviews. The latest review by an allowed appr
 
 ## Release and installation
 
-Release builds require Node.js 22.x and produce per-platform Node SEA executables for the CLI and stable dispatcher. GitHub Releases publish one archive per platform (`.tar.gz` for Linux/macOS and `.zip` for Windows), plus top-level `SHA256SUMS` and `release-index.json`; GitHub Packages is not used. Each archive contains the CLI, dispatcher, Codex Skills, canonical Playbooks, Codex/Claude adapters, an internal manifest, and platform-local checksums. Published artifacts include SHA-256 metadata and GitHub artifact attestations bound to `Andrewlislin/repo-governance`, `.github/workflows/release.yml`, the source commit, the platform archive, and the release manifest. The attested release manifest also binds deterministic Skill, policy-asset, and Agent-asset tree digests. Installation fails if either checksum or attestation verification fails; checksum alone is never accepted.
+Release builds require Node.js 22.x and produce per-platform Node SEA executables for the CLI and stable dispatcher. GitHub Releases publish one archive per platform (`.tar.gz` for Linux/macOS and `.zip` for Windows), plus top-level `SHA256SUMS` and `release-index.json`; GitHub Packages is not used. Each archive contains the CLI, dispatcher, six Codex Skills, canonical Playbooks, Codex/Claude adapters and Hook templates, policy schemas including `agent-policy.schema.json`, an internal manifest, and platform-local checksums. Published artifacts include SHA-256 metadata and GitHub artifact attestations bound to `Andrewlislin/repo-governance`, `.github/workflows/release.yml`, the source commit, the platform archive, and the release manifest. The attested release manifest also binds deterministic Skill, policy-asset, and Agent-asset tree digests. Installation fails if either checksum or attestation verification fails; checksum alone is never accepted.
 
 CLI/dispatcher data uses `${XDG_DATA_HOME:-$HOME/.local/share}/repo-governance` on macOS/Linux and `%LOCALAPPDATA%/repo-governance` on Windows. Skills use `${CODEX_HOME:-$HOME/.codex}/skills`. The optional shareable-index boundary is documented under `adapters/` and is never a public runtime dependency.
 Deterministic repository governance for local hooks, CI, Codex, and Claude Code
