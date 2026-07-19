@@ -51,6 +51,8 @@ test("doctor blocks a stale composition after the original template changes", ()
   installFutureHooks({ env, dispatcherSource: dispatcher(env), compose: true });
   const repo = initGitRepo();
   assert.equal(doctorHooks(repo, { env }).ok, true);
+  assert.equal(doctorHooks(repo, { env, strict: true }).ok, false);
+  assert.equal(doctorHooks(repo, { env, strict: true }).hookConnected, false);
   write(join(original, "description"), "changed later\n");
   const result = doctorHooks(repo, { env });
   assert.equal(result.ok, false);
@@ -89,4 +91,14 @@ test("doctor detects a later hooksPath change that bypasses governance", () => {
   const result = doctorHooks(repo, { env });
   assert.equal(result.ok, false);
   assert.match(result.issues.join("\n"), /does not reach/);
+});
+
+test("hook connection rejects a stale dispatcher marker without overwriting it", () => {
+  const env = isolatedEnv();
+  const repo = initGitRepo();
+  const hookPath = join(repo, ".git", "hooks", "pre-push");
+  const stale = "#!/bin/sh\n# repo-governance:stable-dispatcher\n\"/stale/dispatcher\" pre-push \"$@\"\n";
+  write(hookPath, stale, 0o755);
+  assert.throws(() => connectEffectiveRepositoryHook(repo, { env }), /stale repo-governance dispatcher marker/);
+  assert.equal(readFileSync(hookPath, "utf8"), stale);
 });

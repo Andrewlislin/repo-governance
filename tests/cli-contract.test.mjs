@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { main } from "../src/cli.mjs";
@@ -88,4 +89,50 @@ test("prepare-pr CLI emits the projected check result without remote writes", as
   assert.equal(report.command, "prepare-pr");
   assert.equal(report.summary.status, "ready");
   assert.equal(report.sourceCheckResult.mode, "standard");
+});
+
+test("preflight CLI treats non-Git state as a normal JSON classification", async () => {
+  const cwd = temporaryDirectory("repo-governance-cli-preflight-");
+  const stdout = sink();
+  const stderr = sink();
+  const code = await main(["preflight", "--json"], { cwd, stdout: stdout.stream, stderr: stderr.stream, identity });
+  assert.equal(code, 1);
+  assert.equal(stderr.value(), "");
+  const report = JSON.parse(stdout.value());
+  assert.equal(report.command, "preflight");
+  assert.equal(report.ok, true);
+  assert.equal(report.status, "needs_attention");
+  assert.equal(report.repoState, "not_git_repo");
+  assert.equal(report.repoPath, null);
+  assert.equal(report.cwd, realpathSync(cwd));
+});
+
+test("preflight human summary and CLI help expose the public entry point", async () => {
+  const cwd = temporaryDirectory("repo-governance-cli-preflight-human-");
+  const stdout = sink();
+  const stderr = sink();
+  assert.equal(await main(["preflight"], { cwd, stdout: stdout.stream, stderr: stderr.stream, identity }), 1);
+  assert.match(stdout.value(), /not a Git repository/);
+  assert.equal(stderr.value(), "");
+
+  const helpOutput = sink();
+  assert.equal(await main(["help"], { stdout: helpOutput.stream }), 0);
+  assert.match(helpOutput.value(), /preflight \[--json\]/);
+});
+
+test("preflight invocation errors retain the complete blocked contract", async () => {
+  const cwd = temporaryDirectory("repo-governance-cli-preflight-invalid-");
+  const stdout = sink();
+  const stderr = sink();
+  const code = await main(["preflight", "unexpected", "--json"], { cwd, stdout: stdout.stream, stderr: stderr.stream, identity });
+  assert.equal(code, 2);
+  assert.equal(stdout.value(), "");
+  const report = JSON.parse(stderr.value());
+  assert.equal(report.ok, false);
+  assert.equal(report.status, "blocked");
+  assert.equal(report.exitCode, 2);
+  assert.equal(report.repoState, "blocked");
+  assert.equal(report.repoPath, null);
+  assert.equal(report.error.code, "RG_INVOCATION");
+  assert.deepEqual(Object.keys(report.inspection), ["gitRepository", "configPresent", "configValid", "engineAligned", "hookConnected"]);
 });

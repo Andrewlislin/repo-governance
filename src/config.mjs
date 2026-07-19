@@ -76,7 +76,14 @@ export function readConfig(repo, options) {
   try {
     config = JSON.parse(readFileSync(path, "utf8"));
   } catch (error) {
-    throw new GovernanceError(`Unable to read ${CONFIG_FILE}: ${error.message}`, { code: "RG_CONFIG" });
+    throw new GovernanceError(`Unable to read ${CONFIG_FILE}: ${error.message}`, {
+      code: "RG_CONFIG",
+      details: {
+        path,
+        causeCode: error.code || null,
+        unreadable: !(error instanceof SyntaxError),
+      },
+    });
   }
   return validateConfig(config, options);
 }

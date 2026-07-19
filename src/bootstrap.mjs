@@ -1,11 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { checkAdoption } from "./check.mjs";
 import { validateConfig, writeConfig } from "./config.mjs";
 import { DIFF_FINGERPRINT_ALGORITHM } from "./fingerprint.mjs";
 import { GovernanceError } from "./errors.mjs";
 import { connectEffectiveRepositoryHook, restoreEffectiveRepositoryHook, snapshotEffectiveRepositoryHook } from "./hooks.mjs";
-import { governanceDataRoot } from "./paths.mjs";
+import { assertLockedRuntime } from "./locked-engine.mjs";
 import { loadPreset, materializePreset } from "./presets.mjs";
 import { runGit } from "./process.mjs";
 import { runtimeIdentity } from "./version.mjs";
@@ -34,26 +34,6 @@ export function detectDefaultBranch(repo, { explicit, env = process.env } = {}) 
 function assertCommittedRepository(repo, env) {
   const result = runGit(["rev-parse", "--verify", "HEAD^{commit}"], { cwd: repo, env, allowFailure: true });
   if (result.status !== 0) throw new GovernanceError("Bootstrap requires an existing commit graph. Use repo-governance new for an empty repository or create the first commit.", { code: "RG_GIT_HISTORY_INSUFFICIENT" });
-}
-
-function assertLockedRuntime(identity, env, platform = process.platform) {
-  if (!/^[0-9a-f]{40}$/.test(identity.commitSha)) throw new GovernanceError("Bootstrap requires a release or source build locked to a full engine commit SHA.", { code: "RG_ENGINE_UNPINNED" });
-  const dataRoot = governanceDataRoot(env, platform);
-  const executableName = platform === "win32" ? "repo-governance.exe" : "repo-governance";
-  const dispatcherName = platform === "win32" ? "dispatcher.exe" : "dispatcher";
-  const executable = join(dataRoot, "engines", identity.commitSha, executableName);
-  const manifestPath = join(dataRoot, "engines", identity.commitSha, "engine-manifest.json");
-  const dispatcher = join(dataRoot, dispatcherName);
-  if (!existsSync(executable) || !existsSync(manifestPath) || !existsSync(dispatcher)) {
-    throw new GovernanceError("The locked engine or stable dispatcher is not installed; install a verified repo-governance release before bootstrap.", {
-      code: "RG_ENGINE_NOT_INSTALLED",
-      details: { executable, manifest: manifestPath, dispatcher },
-    });
-  }
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  if (manifest.engineCommitSha !== identity.commitSha || manifest.engineVersion !== identity.version) {
-    throw new GovernanceError("Installed engine manifest does not match the running bootstrap engine.", { code: "RG_ENGINE_MISMATCH", details: { configured: identity, installed: manifest } });
-  }
 }
 
 function removeEmptyParent(path, stop) {

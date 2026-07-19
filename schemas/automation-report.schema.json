@@ -6,10 +6,51 @@
   "required": ["schemaVersion", "command", "ok", "status", "repoPath", "nextActions"],
   "properties": {
     "schemaVersion": { "const": 1 },
-    "command": { "enum": ["bootstrap", "new", "clone", "prepare-pr"] },
+    "command": { "enum": ["bootstrap", "new", "clone", "preflight", "prepare-pr"] },
     "ok": { "type": "boolean" },
     "status": { "enum": ["succeeded", "needs_attention", "blocked"] },
-    "repoPath": { "type": "string", "minLength": 1 },
+    "exitCode": { "enum": [0, 1, 2] },
+    "cwd": { "type": "string", "minLength": 1, "pattern": "^(?:/|[A-Za-z]:[\\\\/])" },
+    "repoPath": {
+      "oneOf": [
+        { "type": "string", "minLength": 1, "pattern": "^(?:/|[A-Za-z]:[\\\\/])" },
+        { "type": "null" }
+      ]
+    },
+    "repoState": { "enum": ["not_git_repo", "unmanaged", "managed", "misconfigured", "blocked"] },
+    "inspection": {
+      "type": "object",
+      "required": ["gitRepository", "configPresent", "configValid", "engineAligned", "hookConnected"],
+      "properties": {
+        "gitRepository": { "type": "boolean" },
+        "configPresent": { "type": "boolean" },
+        "configValid": { "type": ["boolean", "null"] },
+        "engineAligned": { "type": ["boolean", "null"] },
+        "hookConnected": { "type": ["boolean", "null"] }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": ["source", "autoPreflight", "autoBootstrap", "matchedPathPrefix", "preset"],
+      "properties": {
+        "source": { "enum": ["built-in-defaults", "user-policy"] },
+        "autoPreflight": { "type": "boolean" },
+        "autoBootstrap": { "type": "boolean" },
+        "matchedPathPrefix": { "type": ["string", "null"] },
+        "preset": { "type": ["string", "null"] }
+      }
+    },
+    "recommendedAction": {
+      "type": "object",
+      "required": ["id", "requiresPreset", "requiresConfirmation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "command": { "type": "string", "minLength": 1 },
+        "preset": { "type": ["string", "null"] },
+        "requiresPreset": { "type": "boolean" },
+        "requiresConfirmation": { "type": "boolean" }
+      }
+    },
     "preset": {
       "type": "object",
       "required": ["name", "schemaVersion", "sha256"]
@@ -27,5 +68,96 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "command": { "const": "preflight" } }, "required": ["command"] },
+      "then": {
+        "required": ["exitCode", "cwd", "repoState", "inspection", "policy", "recommendedAction"],
+        "allOf": [
+          {
+            "if": { "properties": { "repoState": { "const": "managed" } } },
+            "then": {
+              "properties": {
+                "ok": { "const": true },
+                "status": { "const": "succeeded" },
+                "exitCode": { "const": 0 },
+                "repoPath": { "type": "string", "minLength": 1 },
+                "inspection": {
+                  "properties": {
+                    "gitRepository": { "const": true },
+                    "configPresent": { "const": true },
+                    "configValid": { "const": true },
+                    "engineAligned": { "const": true },
+                    "hookConnected": { "const": true }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "repoState": { "const": "not_git_repo" } } },
+            "then": {
+              "properties": {
+                "ok": { "const": true },
+                "status": { "const": "needs_attention" },
+                "exitCode": { "const": 1 },
+                "repoPath": { "type": "null" },
+                "inspection": {
+                  "properties": {
+                    "gitRepository": { "const": false },
+                    "configPresent": { "const": false },
+                    "configValid": { "type": "null" },
+                    "engineAligned": { "type": "null" },
+                    "hookConnected": { "type": "null" }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "repoState": { "const": "unmanaged" } } },
+            "then": {
+              "properties": {
+                "ok": { "const": true },
+                "status": { "const": "needs_attention" },
+                "exitCode": { "const": 1 },
+                "repoPath": { "type": "string", "minLength": 1 },
+                "inspection": {
+                  "properties": {
+                    "gitRepository": { "const": true },
+                    "configPresent": { "const": false },
+                    "configValid": { "type": "null" },
+                    "engineAligned": { "type": "null" },
+                    "hookConnected": { "type": "null" }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "repoState": { "const": "misconfigured" } } },
+            "then": {
+              "properties": {
+                "ok": { "const": true },
+                "status": { "const": "needs_attention" },
+                "exitCode": { "const": 1 },
+                "repoPath": { "type": "string", "minLength": 1 }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "repoState": { "const": "blocked" } } },
+            "then": {
+              "properties": {
+                "ok": { "const": false },
+                "status": { "const": "blocked" },
+                "exitCode": { "const": 2 }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
 }

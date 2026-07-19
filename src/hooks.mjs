@@ -15,8 +15,12 @@ function configValue(args, options = {}) {
   return lines.at(-1) || null;
 }
 
-function dispatcherInvocation(dataRoot) {
-  return `${MARKER}\n\"${join(dataRoot, "dispatcher")}\" pre-push \"$@\"`;
+function dispatcherPath(dataRoot, platform = process.platform) {
+  return join(dataRoot, platform === "win32" ? "dispatcher.exe" : "dispatcher");
+}
+
+function dispatcherInvocation(dataRoot, platform = process.platform) {
+  return `${MARKER}\n\"${dispatcherPath(dataRoot, platform)}\" pre-push \"$@\"`;
 }
 
 function writeTemplateHook(template, dataRoot) {
@@ -147,19 +151,48 @@ export function restoreEffectiveRepositoryHook(snapshot) {
 export function connectEffectiveRepositoryHook(repo, { env = process.env, requireDispatcher = false } = {}) {
   const target = snapshotEffectiveRepositoryHook(repo, { env });
   const dataRoot = governanceDataRoot(env);
-  const dispatcher = join(dataRoot, "dispatcher");
+  const dispatcher = dispatcherPath(dataRoot);
   if (requireDispatcher && !existsSync(dispatcher)) throw new GovernanceError("Stable dispatcher is missing; install a verified repo-governance release before bootstrap.", { code: "RG_HOOKS_DISPATCHER", details: { dispatcher } });
   const current = target.existed ? target.contents.toString("utf8") : "#!/bin/sh\n";
-  if (current.includes(MARKER)) return { mode: target.mode, changed: false, path: target.path };
+  if (current.includes(dispatcherInvocation(dataRoot))) return { mode: target.mode, changed: false, path: target.path };
+  if (current.includes(MARKER)) {
+    throw new GovernanceError("The effective pre-push hook contains a stale repo-governance dispatcher marker; refusing to overwrite it.", {
+      code: "RG_HOOKS_CONFLICT",
+      details: { path: target.path, expectedDispatcher: dispatcher },
+    });
+  }
   mkdirSync(dirname(target.path), { recursive: true });
   writeFileSync(target.path, `${current.trimEnd()}\n${dispatcherInvocation(dataRoot)}\n`, { mode: 0o755 });
   return { mode: target.mode, changed: true, path: target.path };
 }
 
-export function doctorHooks(repo, { env = process.env } = {}) {
+export function inspectEffectiveRepositoryHook(repo, { env = process.env } = {}) {
+  const target = effectiveRepositoryHook(repo, { env });
+  const dataRoot = governanceDataRoot(env);
+  const dispatcher = dispatcherPath(dataRoot);
+  if (!existsSync(target.path)) return { ...target, dispatcher, connected: false };
+  let stat;
+  let contents;
+  try {
+    stat = lstatSync(target.path);
+    contents = readFileSync(target.path, "utf8");
+  } catch (error) {
+    throw new GovernanceError(`Unable to inspect the effective pre-push hook: ${error.message}`, {
+      code: "RG_HOOKS_READ",
+      details: { path: target.path, causeCode: error.code || null },
+    });
+  }
+  return {
+    ...target,
+    dispatcher,
+    connected: stat.isFile() && !stat.isSymbolicLink() && contents.includes(dispatcherInvocation(dataRoot)),
+  };
+}
+
+export function doctorHooks(repo, { env = process.env, strict = false } = {}) {
   const dataRoot = governanceDataRoot(env);
   const issues = [];
-  const dispatcher = join(dataRoot, "dispatcher");
+  const dispatcher = dispatcherPath(dataRoot);
   if (!existsSync(dispatcher)) issues.push("Stable dispatcher is missing.");
   const manifestPath = join(dataRoot, MANIFEST);
   if (existsSync(manifestPath)) {
@@ -168,20 +201,17 @@ export function doctorHooks(repo, { env = process.env } = {}) {
       issues.push("The original Git template changed after composition. Rerun hooks install --compose after reviewing the new template; no files were overwritten.");
     }
   }
-  const hooksResult = runGit(["config", "--show-origin", "--get", "core.hooksPath"], { cwd: repo, env, allowFailure: true });
-  if (hooksResult.status === 0) {
-    const hooksPath = hooksResult.stdout.trim().split(/\s+/).at(-1);
-    const prePush = join(resolve(repo, hooksPath), "pre-push");
-    if (!existsSync(prePush) || !readFileSync(prePush, "utf8").includes(MARKER)) {
-      issues.push(`Effective core.hooksPath (${hooksResult.stdout.trim()}) does not reach the stable dispatcher. Run repo-governance init --accept to repair it.`);
-    }
-  } else {
-    const native = effectiveRepositoryHook(repo, { env });
-    const nativeConnected = existsSync(native.path) && readFileSync(native.path, "utf8").includes(MARKER);
-    if (!nativeConnected) {
+  const current = inspectEffectiveRepositoryHook(repo, { env });
+  if (!current.connected) {
+    const hooksResult = runGit(["config", "--show-origin", "--get", "core.hooksPath"], { cwd: repo, env, allowFailure: true });
+    if (hooksResult.status === 0) {
+      issues.push(`Effective core.hooksPath (${hooksResult.stdout.trim()}) does not reach the stable dispatcher. Reconnect the reviewed pre-push hook before continuing.`);
+    } else if (strict) {
+      issues.push("The current repository has no effective pre-push connection to the stable dispatcher.");
+    } else {
       const globalTemplate = configValue(["--global", "--get", "init.templateDir"], { env });
       if (!globalTemplate || !existsSync(join(globalTemplate, "hooks", "pre-push"))) issues.push("No effective repository hook or governance Git template was found.");
     }
   }
-  return { ok: issues.length === 0, issues, dispatcher };
+  return { ok: issues.length === 0, issues, dispatcher, hookConnected: current.connected };
 }

@@ -14,14 +14,24 @@ export function write(path, content, mode) {
 }
 
 export function git(repo, args, options = {}) {
-  return execFileSync("git", args, { cwd: repo, encoding: options.binary ? null : "utf8", env: options.env || process.env });
+  const env = options.env || {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: process.platform === "win32" ? "NUL" : "/dev/null",
+    GIT_CONFIG_NOSYSTEM: "1",
+  };
+  return execFileSync("git", args, { cwd: repo, encoding: options.binary ? null : "utf8", env });
 }
 
 export function initGitRepo() {
   const repo = temporaryDirectory();
-  git(repo, ["init", "-b", "main"]);
-  git(repo, ["config", "user.name", "Test User"]);
-  git(repo, ["config", "user.email", "test@example.com"]);
+  const env = {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: process.platform === "win32" ? "NUL" : "/dev/null",
+    GIT_CONFIG_NOSYSTEM: "1",
+  };
+  git(repo, ["init", "-b", "main"], { env });
+  git(repo, ["config", "user.name", "Test User"], { env });
+  git(repo, ["config", "user.email", "test@example.com"], { env });
   return repo;
 }
 

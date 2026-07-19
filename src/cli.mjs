@@ -17,6 +17,7 @@ import { bootstrapRepository } from "./bootstrap.mjs";
 import { newRepository } from "./new.mjs";
 import { cloneRepository } from "./clone.mjs";
 import { preparePullRequest } from "./prepare-pr.mjs";
+import { preflightRepository } from "./preflight.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -47,6 +48,7 @@ function help() {
   bootstrap --preset <preset> [--default-branch <branch>] [--json]
   new <name> --preset <preset> [--default-branch <branch>] [--json]
   clone <repo> [directory] --preset <preset> [--default-branch <branch>] [--json]
+  preflight [--json]
   prepare-pr [--base <ref>] [--json]
   check [--base <ref>] [--head <ref>] [--json]
   waiver create --name <name> --paths <a,b> --reason <text> --expires <ISO> [--base <ref>]
@@ -69,7 +71,7 @@ export async function main(argv, context = {}) {
   const parsed = parse(argv);
   const [command, subcommand] = parsed.positional;
   const json = Boolean(parsed.flags.json);
-  const automationCommand = ["bootstrap", "new", "clone", "prepare-pr"].includes(command);
+  const automationCommand = ["bootstrap", "new", "clone", "preflight", "prepare-pr"].includes(command);
   try {
     if (!command || command === "help" || parsed.flags.help) {
       emit(help(), false, stdout);
@@ -131,6 +133,15 @@ export async function main(argv, context = {}) {
         identity: context.identity,
         verifyInstallation: context.verifyInstallation ?? true,
       });
+      emit(result, json, result.ok ? stdout : stderr);
+      return result.exitCode;
+    }
+    if (command === "preflight") {
+      const invalidArguments = parsed.positional.length !== 1 || Object.keys(parsed.flags).some((flag) => flag !== "json");
+      const invocationError = invalidArguments
+        ? new GovernanceError("preflight accepts only the optional --json flag.", { code: "RG_INVOCATION" })
+        : null;
+      const result = preflightRepository(cwd, { env, identity: context.identity, invocationError });
       emit(result, json, result.ok ? stdout : stderr);
       return result.exitCode;
     }

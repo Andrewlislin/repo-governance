@@ -43,7 +43,7 @@
     {
       "id": "v1.1.1-pr-1-preflight",
       "description": "Read-only preflight classification, stable report contract, locked-engine inspection, and strict hook diagnosis",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.1.1-pr-2-codex-gate",
