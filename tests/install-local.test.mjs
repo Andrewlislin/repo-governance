@@ -79,6 +79,7 @@ test("local source install copies CLI, dispatcher, manifests, versioned Agent as
 
   const manifest = JSON.parse(readFileSync(join(engineDirectory, "local-engine-manifest.json"), "utf8"));
   assert.equal(manifest.installKind, "source");
+  assert.ok(Number.isFinite(Date.parse(manifest.installedAt)));
   assert.equal(manifest.engineCommitSha, commitSha);
   assert.equal(manifest.engineVersion, "1.0.0");
   assert.equal(manifest.cli.sha256, digest("cli"));
@@ -89,6 +90,8 @@ test("local source install copies CLI, dispatcher, manifests, versioned Agent as
   assert.equal(manifest.agentAssetsSha256, treeDigest(result.agentAssets));
 
   const dispatcherManifest = JSON.parse(readFileSync(join(engineDirectory, "engine-manifest.json"), "utf8"));
+  assert.ok(Number.isFinite(Date.parse(dispatcherManifest.installedAt)));
+  delete dispatcherManifest.installedAt;
   assert.deepEqual(dispatcherManifest, {
     engineVersion: "1.0.0",
     engineCommitSha: commitSha,

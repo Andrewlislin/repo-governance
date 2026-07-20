@@ -79,6 +79,7 @@ function installReleaseDirectory(bundle, { env, verifyAttestation, archivePath =
   assertRuntimeEntriesAvailable({ env, engineCommitSha: manifest.engineCommitSha });
   let skills = null;
   try {
+    const installedAt = new Date().toISOString();
     mkdirSync(engineDirectory, { recursive: true });
     const executable = join(engineDirectory, process.platform === "win32" ? "repo-governance.exe" : "repo-governance");
     cpSync(cli, executable);
@@ -91,6 +92,7 @@ function installReleaseDirectory(bundle, { env, verifyAttestation, archivePath =
       engineVersion: manifest.engineVersion,
       engineCommitSha: manifest.engineCommitSha,
       sha256: manifest.cli.sha256,
+      installedAt,
       ...(manifest.agentAssetsSha256 ? { agentAssetsSha256: manifest.agentAssetsSha256 } : {}),
     }, null, 2)}\n`);
     skills = installSkills(skillsSource, { env });

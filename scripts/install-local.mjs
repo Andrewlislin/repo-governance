@@ -76,6 +76,7 @@ export function installLocalFromSource({
   const cliSha256 = digest(cliSource);
   const dispatcherSha256 = digest(dispatcherSource);
   const skillsSha256 = treeDigest(skillsSource);
+  const installedAt = new Date().toISOString();
 
   let skills = null;
   try {
@@ -94,6 +95,7 @@ export function installLocalFromSource({
       engineCommitSha: commitSha,
       repository: "Andrewlislin/repo-governance",
       installKind: "source",
+      installedAt,
       platform: `${platform}-${arch}`,
       cli: { file: cliFile, sha256: cliSha256 },
       dispatcher: { file: dispatcherFile, sha256: dispatcherSha256 },
@@ -107,6 +109,7 @@ export function installLocalFromSource({
       engineVersion: version,
       engineCommitSha: commitSha,
       sha256: cliSha256,
+      installedAt,
       agentAssetsSha256: engineManifest.agentAssetsSha256,
     }, null, 2)}\n`);
     writeFileSync(join(engineDirectory, "SHA256SUMS"), `${cliSha256}  ${cliFile}\n${dispatcherSha256}  ${dispatcherFile}\n`);

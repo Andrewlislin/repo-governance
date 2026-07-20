@@ -94,6 +94,12 @@ Installation is future-only. `hooks install` configures a Git template but never
 
 The versioned configuration schema is in `schemas/repo-governance.schema.json`. Waivers live in `.repo-governance/waivers/*.json`, can apply only to `RG001`, exclude their own directory from the fixed business diff fingerprint, and never store a head SHA or approval state.
 
+## Repository registry and engine pruning
+
+Successful `bootstrap`, `new`, `clone`, and `update` commands register the canonical absolute repository path, its realpath at registration time, and locked engine identity in the user-level `repositories.json`. Registry updates use a process lock plus temporary-file atomic rename so concurrent writers do not lose records. `repositories register [path]`, `repositories list`, and `repositories unregister <path>` manage this explicit inventory. Unregister accepts a path that no longer exists; moved repositories must be registered again, and inaccessible registered paths continue to protect their engine until explicitly unregistered.
+
+`engines list` reports verified installed engines and marks legacy or damaged metadata as `unknown`. `engines prune --dry-run` never deletes files; `engines prune --confirm` recomputes its plan from the current default pointer and registry before deletion. The default engine, every registered reference, every unknown engine, the latest installed usable engine, and one historical usable engine are protected. Output includes the estimated space and the safety boundary: absence from this explicit registry does not prove that no unregistered repository on the computer references an engine.
+
 ## Test tiers (RG002)
 
 Executable test entries belong to exactly one of `pr-blocking`, `nightly`, or `manual-smoke`. Fixtures, mocks, helpers, setup modules, shared test utilities, and test data belong in `testSupport` and are not classified as standalone entries. A PR-blocking command may never reach a nightly or manual entry, even if that entry skips without a real secret.

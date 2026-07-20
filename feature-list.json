@@ -73,7 +73,7 @@
     {
       "id": "v1.2-pr-2-engine-registry-prune",
       "description": "User-level engine registry, repository registration, engine listing, and safe pruning",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.2-pr-3-version-advisory",

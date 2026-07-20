@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { realpathSync } from "node:fs";
+import { realpathSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { main } from "../src/cli.mjs";
@@ -23,7 +23,7 @@ test("bootstrap CLI emits its stable JSON contract", async () => {
   const stdout = sink();
   const stderr = sink();
   const code = await main(["bootstrap", "--preset", "node-library", "--json"], {
-    cwd: repository(), stdout: stdout.stream, stderr: stderr.stream, identity, verifyInstallation: false,
+    cwd: repository(), stdout: stdout.stream, stderr: stderr.stream, identity, verifyInstallation: false, registerRepository: () => ({ registered: true }),
   });
   assert.equal(code, 0);
   assert.equal(stderr.value(), "");
@@ -33,6 +33,7 @@ test("bootstrap CLI emits its stable JSON contract", async () => {
   assert.equal(report.status, "succeeded");
   assert.equal(report.preset.name, "node-library");
   assert.equal(report.checkResult.mode, "adoption");
+  assert.equal(report.repositoryRegistration.registered, true);
 });
 
 test("automation invocation errors retain the stable blocked envelope", async () => {
@@ -40,7 +41,7 @@ test("automation invocation errors retain the stable blocked envelope", async ()
   const stderr = sink();
   const repo = repository();
   const code = await main(["bootstrap", "--json"], {
-    cwd: repo, stdout: stdout.stream, stderr: stderr.stream, identity, verifyInstallation: false,
+    cwd: repo, stdout: stdout.stream, stderr: stderr.stream, identity, verifyInstallation: false, registerRepository: () => ({ registered: true }),
   });
   assert.equal(code, 2);
   assert.equal(stdout.value(), "");
@@ -62,7 +63,7 @@ test("new CLI parses its public arguments and emits the shared automation envelo
     GIT_COMMITTER_EMAIL: "test@example.com",
   };
   const code = await main(["new", "service", "--preset", "node-service", "--json"], {
-    cwd: parent, env, stdout: stdout.stream, stderr: stderr.stream, identity, verifyInstallation: false,
+    cwd: parent, env, stdout: stdout.stream, stderr: stderr.stream, identity, verifyInstallation: false, registerRepository: () => ({ registered: true }),
   });
   assert.equal(code, 0);
   assert.equal(stderr.value(), "");
@@ -70,6 +71,39 @@ test("new CLI parses its public arguments and emits the shared automation envelo
   assert.equal(report.command, "new");
   assert.equal(report.initialized, true);
   assert.match(report.initialCommit, /^[0-9a-f]{40}$/);
+  assert.equal(report.repositoryRegistration.registered, true);
+});
+
+test("clone CLI registers only the successfully created repository", async () => {
+  const source = repository();
+  const parent = temporaryDirectory("repo-governance-cli-clone-");
+  const env = {
+    ...process.env,
+    GIT_AUTHOR_NAME: "Test User",
+    GIT_AUTHOR_EMAIL: "test@example.com",
+    GIT_COMMITTER_NAME: "Test User",
+    GIT_COMMITTER_EMAIL: "test@example.com",
+  };
+  const registrations = [];
+  const stdout = sink();
+  const stderr = sink();
+  const code = await main(["clone", source, "copied", "--preset", "node-library", "--json"], {
+    cwd: parent,
+    env,
+    stdout: stdout.stream,
+    stderr: stderr.stream,
+    identity,
+    verifyInstallation: false,
+    registerRepository(path) {
+      registrations.push(path);
+      return { registered: true, path };
+    },
+  });
+  assert.equal(code, 0);
+  assert.equal(stderr.value(), "");
+  const report = JSON.parse(stdout.value());
+  assert.deepEqual(registrations, [report.repoPath]);
+  assert.equal(report.repositoryRegistration.registered, true);
 });
 
 test("prepare-pr CLI emits the projected check result without remote writes", async () => {
@@ -118,6 +152,8 @@ test("preflight human summary and CLI help expose the public entry point", async
   const helpOutput = sink();
   assert.equal(await main(["help"], { stdout: helpOutput.stream }), 0);
   assert.match(helpOutput.value(), /preflight \[--json\]/);
+  assert.match(helpOutput.value(), /repositories register \[path\]/);
+  assert.match(helpOutput.value(), /engines prune --dry-run/);
 });
 
 test("preflight invocation errors retain the complete blocked contract", async () => {
@@ -177,13 +213,33 @@ test("update CLI emits a stable human message and structured default engine iden
     cwd: repo,
     stdout: jsonOut.stream,
     controlledUpdate: () => result,
+    registerRepository: () => ({ registered: true }),
   }), 0);
   assert.deepEqual(JSON.parse(jsonOut.value()), result);
+  assert.equal(result.repositoryRegistration.registered, true);
   const humanOut = sink();
   assert.equal(await main(["update", "--bundle", "/verified"], {
     cwd: repo,
     stdout: humanOut.stream,
     controlledUpdate: () => result,
+    registerRepository: () => ({ registered: true }),
   }), 0);
   assert.equal(humanOut.value(), `${result.message}\n`);
+});
+
+test("repository registry CLI supports register, list, and missing-path unregister JSON contracts", async () => {
+  const repo = initGitRepo();
+  writeConfig(repo, baseConfig({ engineVersion: "1.0.0", engineCommitSha: "a".repeat(40) }));
+  const home = temporaryDirectory("repo-governance-cli-registry-");
+  const env = { ...process.env, HOME: home, XDG_DATA_HOME: join(home, "data") };
+  const registerOut = sink();
+  assert.equal(await main(["repositories", "register", repo, "--json"], { env, stdout: registerOut.stream }), 0);
+  assert.equal(JSON.parse(registerOut.value()).registered, true);
+  const listOut = sink();
+  assert.equal(await main(["repositories", "list", "--json"], { env, stdout: listOut.stream }), 0);
+  assert.equal(JSON.parse(listOut.value()).repositories.length, 1);
+  rmSync(repo, { recursive: true, force: true });
+  const unregisterOut = sink();
+  assert.equal(await main(["repositories", "unregister", repo, "--json"], { env, stdout: unregisterOut.stream }), 0);
+  assert.equal(JSON.parse(unregisterOut.value()).unregistered, true);
 });

@@ -81,6 +81,7 @@ test("verified bundle installs CLI, dispatcher, versioned Agent assets, and Skil
   assert.ok(existsSync(join(result.agentAssets, "adapters", "claude-code", "hooks", "settings.example.json")));
   const engineManifest = JSON.parse(readFileSync(join(result.dataRoot, "engines", manifest.engineCommitSha, "engine-manifest.json"), "utf8"));
   assert.equal(engineManifest.agentAssetsSha256, manifest.agentAssetsSha256);
+  assert.ok(Number.isFinite(Date.parse(engineManifest.installedAt)));
   assert.equal(result.dataRoot, join(env.XDG_DATA_HOME, "repo-governance"));
   assert.equal(result.skills.root, join(env.CODEX_HOME, "skills"));
   assert.ok(existsSync(result.launcherPath));

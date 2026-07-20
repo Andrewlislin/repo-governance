@@ -85,6 +85,8 @@ test("successful update rereads consistent version fields", () => {
   assert.equal(result.defaultEngineCommitSha, next.engineCommitSha);
   assert.ok(existsSync(result.launcherPath));
   assert.ok(existsSync(result.commandPath));
+  const engineManifest = JSON.parse(readFileSync(join(env.XDG_DATA_HOME, "repo-governance", "engines", next.engineCommitSha, "engine-manifest.json"), "utf8"));
+  assert.ok(Number.isFinite(Date.parse(engineManifest.installedAt)));
 });
 
 test("launcher replacement failure restores repository, engine, command entry, and default pointer", () => {

@@ -94,6 +94,12 @@ repo-governance init --accept
 
 版本化配置 Schema 位于 `schemas/repo-governance.schema.json`。豁免文件位于 `.repo-governance/waivers/*.json`，只能应用于 `RG001`；固定业务 diff 指纹会排除豁免文件自身所在的目录，并且豁免文件永远不会保存 head SHA 或审批状态。
 
+## 仓库登记与 engine 清理
+
+`bootstrap`、`new`、`clone`、`update` 成功后，会把仓库的规范绝对路径、登记时 realpath 和锁定 engine 身份写入用户级 `repositories.json`。登记表写入同时使用进程锁和临时文件 atomic rename，避免并发写入丢记录。`repositories register [path]`、`repositories list`、`repositories unregister <path>` 用于显式管理清单。unregister 不要求路径仍存在；仓库移动后必须重新 register，暂时不可访问的登记路径在显式 unregister 前仍保护对应 engine。
+
+`engines list` 会列出经过验证的本机 engine，旧版缺少元数据或内容损坏时标记为 `unknown`。`engines prune --dry-run` 绝不删除文件；`engines prune --confirm` 会在删除前重新读取当前默认指针和登记表并重新计算。默认 engine、登记引用、所有 unknown engine、最新可用 engine 和至少一个历史可用 engine 都受保护。输出同时给出预计释放空间和安全边界：没有登记引用并不等于电脑上绝对没有未登记仓库仍在引用。
+
 ## 测试分层（RG002）
 
 可执行测试入口必须且只能属于 `pr-blocking`、`nightly` 或 `manual-smoke` 中的一层。fixture、mock、helper、setup 模块、共享测试工具和测试数据应归入 `testSupport`，不会被归类为独立测试入口。PR blocking 命令绝不能触达 nightly 或 manual 入口，即使该入口在没有真实 secret 时会跳过执行。

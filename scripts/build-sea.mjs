@@ -15,7 +15,10 @@ const extension = process.platform === "win32" ? ".exe" : "";
 function smokeTestExecutable(name, executable) {
   if (name === "repo-governance") {
     const versionResult = spawnSync(executable, ["version", "--json"], { encoding: "utf8" });
-    if (versionResult.status !== 0) throw new Error(`SEA CLI version smoke test failed: ${(versionResult.stderr || versionResult.stdout || "no output").trim()}`);
+    if (versionResult.status !== 0) {
+      const output = (versionResult.stderr || versionResult.stdout || "no output").trim();
+      throw new Error(`SEA CLI version smoke test failed (status=${versionResult.status}, signal=${versionResult.signal}, error=${versionResult.error?.message || "none"}): ${output}`);
+    }
     const identity = JSON.parse(versionResult.stdout);
     if (identity.version !== version || identity.commitSha !== commitSha) throw new Error("SEA CLI identity does not match the build inputs.");
 

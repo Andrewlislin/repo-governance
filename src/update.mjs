@@ -46,7 +46,12 @@ export function controlledUpdate(repo, bundleDirectory, {
     const engineTarget = join(engineDirectory, platform === "win32" ? "repo-governance.exe" : "repo-governance");
     cpSync(engineSource, engineTarget);
     if (platform !== "win32") chmodSync(engineTarget, 0o755);
-    writeFileSync(join(engineDirectory, "engine-manifest.json"), `${JSON.stringify({ engineVersion: manifest.engineVersion, engineCommitSha: manifest.engineCommitSha, sha256: manifest.engine.sha256 }, null, 2)}\n`);
+    writeFileSync(join(engineDirectory, "engine-manifest.json"), `${JSON.stringify({
+      engineVersion: manifest.engineVersion,
+      engineCommitSha: manifest.engineCommitSha,
+      sha256: manifest.engine.sha256,
+      installedAt: new Date().toISOString(),
+    }, null, 2)}\n`);
     engineInstalled = true;
     for (const relative of manifest.managedFiles) {
       const source = join(bundleDirectory, "managed", relative);

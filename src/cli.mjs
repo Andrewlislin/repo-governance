@@ -18,6 +18,8 @@ import { newRepository } from "./new.mjs";
 import { cloneRepository } from "./clone.mjs";
 import { preparePullRequest } from "./prepare-pr.mjs";
 import { preflightRepository } from "./preflight.mjs";
+import { listRepositories, registerRepository, unregisterRepository } from "./repositories.mjs";
+import { listEngines, pruneEngines } from "./engines.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -60,6 +62,12 @@ function help() {
   install --bundle <verified-release-directory-or-archive>
   skills install --source <skills-directory> [--replace]
   update --bundle <verified-directory>
+  repositories list [--json]
+  repositories register [path] [--json]
+  repositories unregister <path> [--json]
+  engines list [--json]
+  engines prune --dry-run [--json]
+  engines prune --confirm [--json]
   version [--json]`;
 }
 
@@ -68,6 +76,7 @@ export async function main(argv, context = {}) {
   const env = context.env || process.env;
   const stdout = context.stdout || process.stdout;
   const stderr = context.stderr || process.stderr;
+  const register = context.registerRepository || registerRepository;
   const parsed = parse(argv);
   const [command, subcommand] = parsed.positional;
   const json = Boolean(parsed.flags.json);
@@ -105,6 +114,29 @@ export async function main(argv, context = {}) {
       emit(installSkills(parsed.flags.source, { env, replace: Boolean(parsed.flags.replace) }), json, stdout);
       return 0;
     }
+    if (command === "repositories" && subcommand === "list") {
+      emit(listRepositories({ env }), json, stdout);
+      return 0;
+    }
+    if (command === "repositories" && subcommand === "register") {
+      emit(registerRepository(parsed.positional[2] || cwd, { env }), json, stdout);
+      return 0;
+    }
+    if (command === "repositories" && subcommand === "unregister") {
+      emit(unregisterRepository(parsed.positional[2], { env }), json, stdout);
+      return 0;
+    }
+    if (command === "engines" && subcommand === "list") {
+      emit(listEngines({ env }), json, stdout);
+      return 0;
+    }
+    if (command === "engines" && subcommand === "prune") {
+      const dryRun = Boolean(parsed.flags["dry-run"]);
+      const confirm = Boolean(parsed.flags.confirm);
+      if (dryRun === confirm) throw new GovernanceError("engines prune requires exactly one of --dry-run or --confirm.", { code: "RG_INVOCATION" });
+      emit(pruneEngines({ env, confirm }), json, stdout);
+      return 0;
+    }
     if (command === "hooks" && subcommand === "install") {
       const result = installFutureHooks({ compose: Boolean(parsed.flags.compose), env, dispatcherSource: parsed.flags.dispatcher });
       emit(result, json, stdout);
@@ -123,6 +155,7 @@ export async function main(argv, context = {}) {
         identity: context.identity,
         verifyInstallation: context.verifyInstallation ?? true,
       });
+      if (result.ok) result.repositoryRegistration = register(result.repoPath, { env });
       emit(result, json, result.ok ? stdout : stderr);
       return result.exitCode;
     }
@@ -135,6 +168,7 @@ export async function main(argv, context = {}) {
         identity: context.identity,
         verifyInstallation: context.verifyInstallation ?? true,
       });
+      if (result.ok) result.repositoryRegistration = register(result.repoPath, { env });
       emit(result, json, result.ok ? stdout : stderr);
       return result.exitCode;
     }
@@ -161,6 +195,7 @@ export async function main(argv, context = {}) {
         identity: context.identity,
         verifyInstallation: context.verifyInstallation ?? true,
       });
+      if (result.ok) result.repositoryRegistration = register(result.repoPath, { env });
       emit(result, json, result.ok ? stdout : stderr);
       return result.exitCode;
     }
@@ -209,7 +244,9 @@ export async function main(argv, context = {}) {
     }
     if (command === "update") {
       if (!parsed.flags.bundle) throw new GovernanceError("--bundle is required; push and check never download an engine implicitly.", { code: "RG_INVOCATION" });
-      emit((context.controlledUpdate || controlledUpdate)(repo, parsed.flags.bundle, { env }), json, stdout);
+      const result = (context.controlledUpdate || controlledUpdate)(repo, parsed.flags.bundle, { env });
+      result.repositoryRegistration = register(repo, { env });
+      emit(result, json, stdout);
       return 0;
     }
     throw new GovernanceError(`Unknown command: ${parsed.positional.join(" ")}`, { code: "RG_INVOCATION" });
