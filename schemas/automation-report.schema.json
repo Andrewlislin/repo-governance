@@ -18,6 +18,20 @@
       ]
     },
     "repoState": { "enum": ["not_git_repo", "unmanaged", "managed", "misconfigured", "blocked"] },
+    "updateAdvisory": {
+      "type": "object",
+      "required": ["available", "currentVersion", "latestVersion", "versionsBehind", "securityFixAvailable", "shouldWarn", "reason", "catalogStatus"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "currentVersion": { "type": "string" },
+        "latestVersion": { "type": ["string", "null"] },
+        "versionsBehind": { "type": "integer", "minimum": 0 },
+        "securityFixAvailable": { "type": "boolean" },
+        "shouldWarn": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 },
+        "catalogStatus": { "enum": ["verified", "cached", "missing", "invalid", "current_unknown"] }
+      }
+    },
     "inspection": {
       "type": "object",
       "required": ["gitRepository", "configPresent", "configValid", "engineAligned", "hookConnected"],
@@ -73,7 +87,7 @@
     {
       "if": { "properties": { "command": { "const": "preflight" } }, "required": ["command"] },
       "then": {
-        "required": ["exitCode", "cwd", "repoState", "inspection", "policy", "recommendedAction"],
+        "required": ["exitCode", "cwd", "repoState", "inspection", "policy", "recommendedAction", "updateAdvisory"],
         "allOf": [
           {
             "if": { "properties": { "repoState": { "const": "managed" } } },

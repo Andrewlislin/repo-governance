@@ -6,6 +6,16 @@
     "status": "needs_attention",
     "exitCode": 1,
     "cwd": "/workspace/service",
+    "updateAdvisory": {
+      "available": false,
+      "currentVersion": "1.1.1",
+      "latestVersion": null,
+      "versionsBehind": 0,
+      "securityFixAvailable": false,
+      "shouldWarn": false,
+      "reason": "catalog_missing",
+      "catalogStatus": "missing"
+    },
     "repoPath": "/workspace/service",
     "repoState": "unmanaged",
     "inspection": {

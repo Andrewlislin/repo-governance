@@ -57,6 +57,7 @@ Inspection completed (`ok: true`), but the repository needs adoption (`status: n
   "schemaVersion": 1,
   "command": "preflight",
   "cwd": "/Users/example/Projects/library",
+  "updateAdvisory": { "available": false, "currentVersion": "1.1.1", "latestVersion": null, "versionsBehind": 0, "securityFixAvailable": false, "shouldWarn": false, "reason": "catalog_missing", "catalogStatus": "missing" },
   "policy": {
     "source": "user-policy",
     "autoPreflight": true,
@@ -97,6 +98,7 @@ Path policy does not apply because there is no existing Git repository. Enter th
   "schemaVersion": 1,
   "command": "preflight",
   "cwd": "/Users/example/Downloads",
+  "updateAdvisory": { "available": false, "currentVersion": "1.1.1", "latestVersion": null, "versionsBehind": 0, "securityFixAvailable": false, "shouldWarn": false, "reason": "catalog_missing", "catalogStatus": "missing" },
   "policy": {
     "source": "built-in-defaults",
     "autoPreflight": true,
@@ -136,6 +138,7 @@ Configuration and engine facts remain valid, but the disconnected effective Hook
   "schemaVersion": 1,
   "command": "preflight",
   "cwd": "/Users/example/Projects/service",
+  "updateAdvisory": { "available": false, "currentVersion": "1.1.1", "latestVersion": null, "versionsBehind": 0, "securityFixAvailable": false, "shouldWarn": false, "reason": "catalog_missing", "catalogStatus": "missing" },
   "policy": {
     "source": "built-in-defaults",
     "autoPreflight": true,

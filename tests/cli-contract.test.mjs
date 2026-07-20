@@ -139,6 +139,16 @@ test("preflight CLI treats non-Git state as a normal JSON classification", async
   assert.equal(report.repoState, "not_git_repo");
   assert.equal(report.repoPath, null);
   assert.equal(report.cwd, realpathSync(cwd));
+  assert.deepEqual(report.updateAdvisory, {
+    available: false,
+    currentVersion: identity.version,
+    latestVersion: null,
+    versionsBehind: 0,
+    securityFixAvailable: false,
+    shouldWarn: false,
+    reason: "catalog_missing",
+    catalogStatus: "missing",
+  });
 });
 
 test("preflight human summary and CLI help expose the public entry point", async () => {
@@ -154,6 +164,54 @@ test("preflight human summary and CLI help expose the public entry point", async
   assert.match(helpOutput.value(), /preflight \[--json\]/);
   assert.match(helpOutput.value(), /repositories register \[path\]/);
   assert.match(helpOutput.value(), /engines prune --dry-run/);
+  assert.match(helpOutput.value(), /version \[check\]/);
+});
+
+test("preflight human output adds a yellow advisory without changing its exit code", async () => {
+  const stdout = sink();
+  const result = {
+    ok: true,
+    exitCode: 1,
+    message: "Preflight needs attention.",
+    updateAdvisory: {
+      available: true,
+      currentVersion: "1.0.0",
+      latestVersion: "1.2.0",
+      versionsBehind: 2,
+      securityFixAvailable: false,
+      shouldWarn: true,
+    },
+  };
+  assert.equal(await main(["preflight"], { stdout: stdout.stream, preflightRepository: () => result }), 1);
+  assert.match(stdout.value(), /\u001b\[33mUpdate available:/);
+  assert.match(stdout.value(), /Run repo-governance version check/);
+});
+
+test("version check emits its stable JSON and human contracts without downloading an update", async () => {
+  const result = {
+    command: "version check",
+    ok: true,
+    status: "verified",
+    exitCode: 0,
+    catalogStatus: "verified",
+    updateAdvisory: {
+      available: true,
+      currentVersion: "1.1.1",
+      latestVersion: "1.2.0",
+      versionsBehind: 1,
+      securityFixAvailable: true,
+      shouldWarn: true,
+      reason: "security_fix_available",
+      catalogStatus: "verified",
+    },
+    message: "Verified release catalog. No update was downloaded.",
+  };
+  const jsonOut = sink();
+  assert.equal(await main(["version", "check", "--json"], { stdout: jsonOut.stream, identity, checkVersion: async () => result }), 0);
+  assert.deepEqual(JSON.parse(jsonOut.value()), result);
+  const humanOut = sink();
+  assert.equal(await main(["version", "check"], { stdout: humanOut.stream, identity, checkVersion: async () => result }), 0);
+  assert.equal(humanOut.value(), `${result.message}\n`);
 });
 
 test("preflight invocation errors retain the complete blocked contract", async () => {

@@ -78,7 +78,7 @@
     {
       "id": "v1.2-pr-3-version-advisory",
       "description": "Verified release catalog, explicit version check, cached upgrade advisory, and read-only preflight reporting",
-      "passes": false
+      "passes": true
     }
   ]
 }

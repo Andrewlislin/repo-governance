@@ -25,6 +25,8 @@
     "check": "npm run check:static && npm test",
     "build:sea": "node scripts/build-sea.mjs",
     "package:release": "node scripts/package-release.mjs",
+    "catalog:write": "node scripts/write-release-catalog.mjs",
+    "catalog:verify": "node scripts/verify-release-catalog.mjs",
     "install:local": "node scripts/install-local.mjs"
   },
   "license": "MIT",

@@ -20,6 +20,7 @@ import { preparePullRequest } from "./prepare-pr.mjs";
 import { preflightRepository } from "./preflight.mjs";
 import { listRepositories, registerRepository, unregisterRepository } from "./repositories.mjs";
 import { listEngines, pruneEngines } from "./engines.mjs";
+import { checkVersion } from "./release-catalog.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -68,7 +69,7 @@ function help() {
   engines list [--json]
   engines prune --dry-run [--json]
   engines prune --confirm [--json]
-  version [--json]`;
+  version [check] [--json]`;
 }
 
 export async function main(argv, context = {}) {
@@ -87,7 +88,14 @@ export async function main(argv, context = {}) {
       return 0;
     }
     if (command === "version") {
-      const identity = runtimeIdentity();
+      const identity = context.identity || runtimeIdentity();
+      if (subcommand === "check") {
+        if (parsed.positional.length !== 2 || Object.keys(parsed.flags).some((flag) => flag !== "json")) throw new GovernanceError("version check accepts only the optional --json flag.", { code: "RG_INVOCATION" });
+        const result = await (context.checkVersion || checkVersion)(identity.version, { env });
+        emit(result, json, result.ok ? stdout : stderr);
+        return result.exitCode;
+      }
+      if (parsed.positional.length !== 1 || Object.keys(parsed.flags).some((flag) => flag !== "json")) throw new GovernanceError("version accepts only the optional check subcommand and --json flag.", { code: "RG_INVOCATION" });
       emit(json ? identity : `${identity.version} (${identity.commitSha})`, json, stdout);
       return 0;
     }
@@ -177,8 +185,11 @@ export async function main(argv, context = {}) {
       const invocationError = invalidArguments
         ? new GovernanceError("preflight accepts only the optional --json flag.", { code: "RG_INVOCATION" })
         : null;
-      const result = preflightRepository(cwd, { env, identity: context.identity, invocationError });
+      const result = (context.preflightRepository || preflightRepository)(cwd, { env, identity: context.identity, invocationError, catalogPublicKey: context.catalogPublicKey });
       emit(result, json, result.ok ? stdout : stderr);
+      if (!json && result.updateAdvisory.shouldWarn) {
+        stdout.write(`\u001b[33mUpdate available: ${result.updateAdvisory.currentVersion} is ${result.updateAdvisory.versionsBehind} releases behind ${result.updateAdvisory.latestVersion}${result.updateAdvisory.securityFixAvailable ? " and a security fix is available" : ""}. Run repo-governance version check.\u001b[0m\n`);
+      }
       return result.exitCode;
     }
     const repo = repositoryRoot(cwd);

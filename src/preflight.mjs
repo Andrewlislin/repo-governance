@@ -7,18 +7,20 @@ import { inspectEffectiveRepositoryHook } from "./hooks.mjs";
 import { inspectLockedRuntime } from "./locked-engine.mjs";
 import { runGit } from "./process.mjs";
 import { runtimeIdentity } from "./version.mjs";
+import { readUpdateAdvisory } from "./release-catalog.mjs";
 
 function action(id, { command, preset = null, requiresPreset = false, requiresConfirmation = false } = {}) {
   return { id, ...(command ? { command } : {}), preset, requiresPreset, requiresConfirmation };
 }
 
-function baseReport(cwd, overrides) {
+function baseReport(cwd, updateAdvisory, overrides) {
   return {
     schemaVersion: 1,
     command: "preflight",
     cwd,
     policy: { ...DEFAULT_AGENT_POLICY },
     nextActions: [],
+    updateAdvisory,
     ...overrides,
   };
 }
@@ -70,8 +72,8 @@ function configExists(repoPath) {
   }
 }
 
-function misconfigured(cwd, repoPath, facts, policy, error, recommendedAction) {
-  return baseReport(cwd, {
+function misconfigured(cwd, repoPath, facts, policy, error, recommendedAction, updateAdvisory) {
+  return baseReport(cwd, updateAdvisory, {
     ok: true,
     status: "needs_attention",
     exitCode: 1,
@@ -85,8 +87,8 @@ function misconfigured(cwd, repoPath, facts, policy, error, recommendedAction) {
   });
 }
 
-function blocked(cwd, repoPath, facts, policy, error) {
-  return baseReport(cwd, {
+function blocked(cwd, repoPath, facts, policy, error, updateAdvisory) {
+  return baseReport(cwd, updateAdvisory, {
     ok: false,
     status: "blocked",
     exitCode: 2,
@@ -104,17 +106,19 @@ export function preflightRepository(invocationCwd = process.cwd(), {
   env = process.env,
   identity = runtimeIdentity(),
   invocationError = null,
+  catalogPublicKey,
 } = {}) {
   let cwd = resolve(invocationCwd);
   let repoPath = null;
   let facts = inspection();
   let policy = { ...DEFAULT_AGENT_POLICY };
+  const updateAdvisory = readUpdateAdvisory(identity.version, { env, ...(catalogPublicKey ? { publicKeyBase64: catalogPublicKey } : {}) });
   try {
     cwd = normalizeDirectory(invocationCwd);
-    if (invocationError) return blocked(cwd, null, facts, policy, asFailure(invocationError).error);
+    if (invocationError) return blocked(cwd, null, facts, policy, asFailure(invocationError).error, updateAdvisory);
     repoPath = findRepositoryRoot(cwd, env);
     if (!repoPath) {
-      return baseReport(cwd, {
+      return baseReport(cwd, updateAdvisory, {
         ok: true,
         status: "needs_attention",
         exitCode: 1,
@@ -134,7 +138,7 @@ export function preflightRepository(invocationCwd = process.cwd(), {
     }
     if (!configExists(repoPath)) {
       const preset = policy.preset;
-      return baseReport(cwd, {
+      return baseReport(cwd, updateAdvisory, {
         ok: true,
         status: "needs_attention",
         exitCode: 1,
@@ -160,9 +164,9 @@ export function preflightRepository(invocationCwd = process.cwd(), {
       facts.configValid = true;
     } catch (error) {
       const failure = asFailure(error);
-      if (failure.error.details?.unreadable) return blocked(cwd, repoPath, facts, policy, failure.error);
+      if (failure.error.details?.unreadable) return blocked(cwd, repoPath, facts, policy, failure.error, updateAdvisory);
       facts.configValid = false;
-      return misconfigured(cwd, repoPath, facts, policy, failure.error, action("configuration-repair-required", { requiresConfirmation: true }));
+      return misconfigured(cwd, repoPath, facts, policy, failure.error, action("configuration-repair-required", { requiresConfirmation: true }), updateAdvisory);
     }
 
     const engine = inspectLockedRuntime(
@@ -184,6 +188,7 @@ export function preflightRepository(invocationCwd = process.cwd(), {
           command: "repo-governance update --bundle <verified-directory>",
           requiresConfirmation: true,
         }),
+        updateAdvisory,
       );
     }
     if (!hook.connected) {
@@ -199,9 +204,10 @@ export function preflightRepository(invocationCwd = process.cwd(), {
         policy,
         error,
         action("hook-reconnect-required", { command: "repo-governance hooks doctor --json", requiresConfirmation: true }),
+        updateAdvisory,
       );
     }
-    return baseReport(cwd, {
+    return baseReport(cwd, updateAdvisory, {
       ok: true,
       status: "succeeded",
       exitCode: 0,
@@ -214,6 +220,6 @@ export function preflightRepository(invocationCwd = process.cwd(), {
     });
   } catch (error) {
     const failure = asFailure(error);
-    return blocked(cwd, repoPath, facts, policy, failure.error);
+    return blocked(cwd, repoPath, facts, policy, failure.error, updateAdvisory);
   }
 }

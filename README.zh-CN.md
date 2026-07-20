@@ -100,6 +100,12 @@ repo-governance init --accept
 
 `engines list` 会列出经过验证的本机 engine，旧版缺少元数据或内容损坏时标记为 `unknown`。`engines prune --dry-run` 绝不删除文件；`engines prune --confirm` 会在删除前重新读取当前默认指针和登记表并重新计算。默认 engine、登记引用、所有 unknown engine、最新可用 engine 和至少一个历史可用 engine 都受保护。输出同时给出预计释放空间和安全边界：没有登记引用并不等于电脑上绝对没有未登记仓库仍在引用。
 
+## 版本提醒
+
+`repo-governance version check` 是版本提醒中唯一联网的命令。它从规范的 `CoaseEdge/repo-governance` GitHub Release 下载历史 catalog 与 Ed25519 detached signature，逐跳校验 HTTPS 重定向，以 executable 内固定公钥验签，拒绝 schema 错误和版本回退，然后原子缓存已验证的原始字节。该命令只给建议，不下载或安装 engine。
+
+`preflight` 不联网，也不写提醒状态；它只读取并重新验签本机缓存，JSON 每次固定返回 `updateAdvisory`。普通 preflight 在落后至少两个已发布版本，或后续任一版本标记为安全修复时显示黄色警告；只落后一个普通版本不提示。Git pre-push 保持完全离线且不显示升级提醒。无缓存、缓存损坏、当前版本不在 catalog 中分别返回 `missing`、`invalid`、`current_unknown`，不阻塞正常仓库工作。详见[签名发布 catalog](docs/release-catalog.md)。
+
 ## 测试分层（RG002）
 
 可执行测试入口必须且只能属于 `pr-blocking`、`nightly` 或 `manual-smoke` 中的一层。fixture、mock、helper、setup 模块、共享测试工具和测试数据应归入 `testSupport`，不会被归类为独立测试入口。PR blocking 命令绝不能触达 nightly 或 manual 入口，即使该入口在没有真实 secret 时会跳过执行。
@@ -136,7 +142,7 @@ Release 与源码安装会把规范 Playbook、两套 adapter 和可选 Hook 模
 
 ## 发布与安装
 
-发布构建需要 Node.js 22.x，并为 CLI engine 和版本感知 launcher 生成各平台的 Node SEA 可执行文件。launcher 自包含，不依赖业务仓库的 Node 运行时。GitHub Releases 每个平台只发布一个压缩包（Linux/macOS 使用 `.tar.gz`，Windows 使用 `.zip`），并附带顶层 `SHA256SUMS` 和 `release-index.json`；不使用 GitHub Packages。每个压缩包内部包含 CLI、launcher、六个 Codex Skill、规范 Playbook、Codex/Claude adapter 与 Hook 模板、包括 `agent-policy.schema.json` 在内的策略 Schema、内部 manifest 和平台内校验文件。发布产物包含 SHA-256 元数据和 GitHub artifact attestation，后者绑定到 `Andrewlislin/repo-governance`、`.github/workflows/release.yml`、源码提交、平台压缩包以及 release manifest。经过 attestation 的 release manifest 还会绑定确定性的 Skill、策略资产和 Agent 资产目录摘要。如果 checksum 或 attestation 任一验证失败，安装都会失败；绝不单独信任 checksum。
+发布构建需要 Node.js 22.x，并为 CLI engine 和版本感知 launcher 生成各平台的 Node SEA 可执行文件。launcher 自包含，不依赖业务仓库的 Node 运行时。GitHub Releases 每个平台只发布一个压缩包（Linux/macOS 使用 `.tar.gz`，Windows 使用 `.zip`），并附带顶层 `SHA256SUMS`、`release-index.json`、确定性 `release-catalog.json` 与 `release-catalog.sig`；不使用 GitHub Packages。每个压缩包内部包含 CLI、launcher、六个 Codex Skill、规范 Playbook、Codex/Claude adapter 与 Hook 模板、包括 `agent-policy.schema.json` 在内的策略 Schema、内部 manifest 和平台内校验文件。发布产物包含 SHA-256 元数据和 GitHub artifact attestation，后者绑定到 `Andrewlislin/repo-governance`、`.github/workflows/release.yml`、源码提交、平台压缩包以及 release manifest。经过 attestation 的 release manifest 还会绑定确定性的 Skill、策略资产和 Agent 资产目录摘要。如果 checksum 或 attestation 任一验证失败，安装都会失败；绝不单独信任 checksum。版本提醒 catalog 使用独立真实性边界：固定来源是 owner 转移后的规范仓库 `CoaseEdge/repo-governance`，且必须通过 executable 内单一 Ed25519 公钥验签。
 
 在 macOS/Linux 上，engine、launcher、默认指针和兼容 dispatcher 数据使用 `${XDG_DATA_HOME:-$HOME/.local/share}/repo-governance`；在 Windows 上使用 `%LOCALAPPDATA%/repo-governance`。POSIX 使用临时文件与 atomic rename 更新 launcher 和指针；Windows 使用版本化 launcher 路径，绝不覆盖正在执行的二进制，入口验证切换后才生效，被锁定的旧文件留待后续 prune。Skills 使用 `${CODEX_HOME:-$HOME/.codex}/skills`。可选的 shareable-index 边界记录在 `adapters/` 下，绝不会成为公开项目的运行时依赖。
 

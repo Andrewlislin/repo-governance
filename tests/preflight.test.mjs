@@ -201,7 +201,7 @@ test("automation schema fixes every public preflight state combination", () => {
   const schema = JSON.parse(readFileSync(new URL("../schemas/automation-report.schema.json", import.meta.url), "utf8"));
   assert.ok(schema.properties.command.enum.includes("preflight"));
   const preflight = schema.allOf.find((condition) => condition.if?.properties?.command?.const === "preflight");
-  assert.deepEqual(preflight.then.required, ["exitCode", "cwd", "repoState", "inspection", "policy", "recommendedAction"]);
+  assert.deepEqual(preflight.then.required, ["exitCode", "cwd", "repoState", "inspection", "policy", "recommendedAction", "updateAdvisory"]);
   const conditions = new Map(preflight.then.allOf.map((condition) => [condition.if.properties.repoState.const, condition.then.properties]));
   assert.deepEqual([...conditions.keys()], ["managed", "not_git_repo", "unmanaged", "misconfigured", "blocked"]);
   assert.deepEqual(

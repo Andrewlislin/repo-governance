@@ -75,6 +75,9 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   const sourceChecker = readFileSync(join(root, "scripts", "check-sources.mjs"), "utf8");
   const seaBuilder = readFileSync(join(root, "scripts", "build-sea.mjs"), "utf8");
   const releasePackager = readFileSync(join(root, "scripts", "package-release.mjs"), "utf8");
+  const catalogWriter = readFileSync(join(root, "scripts", "write-release-catalog.mjs"), "utf8");
+  const catalogVerifier = readFileSync(join(root, "scripts", "verify-release-catalog.mjs"), "utf8");
+  const catalogRuntime = readFileSync(join(root, "src", "release-catalog.mjs"), "utf8");
   assert.match(releasePackager, /policyAssetsSha256/);
   assert.match(releasePackager, /"policy-assets", "presets"/);
   assert.match(releasePackager, /"policy-assets", "schemas"/);
@@ -92,6 +95,9 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   assert.match(contents, /release\/assets\/\$\{\{ matrix\.platform \}\}\/repo-governance-v\$\{\{ steps\.package-version\.outputs\.version \}\}-/);
   assert.match(contents, /release\/assets\/\$\{\{ matrix\.platform \}\}\/release-manifest\.json/);
   assert.match(contents, /write-release-index\.mjs/);
+  assert.match(contents, /npm run catalog:write/);
+  assert.match(contents, /secrets\.REPO_GOVERNANCE_CATALOG_PRIVATE_KEY/);
+  assert.match(contents, /npm run catalog:verify/);
   assert.match(contents, /release\/final\/\*/);
   assert.doesNotMatch(contents, /gh release create "\$GITHUB_REF_NAME" release\/\*\*/);
   assert.match(indexWriter, /SHA256SUMS/);
@@ -104,7 +110,14 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   assert.match(seaBuilder, /report\.repoState !== "not_git_repo"/);
   assert.match(releasePackager, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
   assert.match(indexWriter, /fileURLToPath\(new URL\("\.\.", import\.meta\.url\)\)/);
-  for (const script of [sourceChecker, seaBuilder, releasePackager, indexWriter]) {
+  assert.match(catalogRuntime, /github\.com\/CoaseEdge\/repo-governance\/releases\/latest\/download\/release-catalog\.json/);
+  assert.match(catalogRuntime, /CATALOG_PUBLIC_KEY_BASE64/);
+  assert.match(catalogRuntime, /release-assets\.githubusercontent\.com/);
+  assert.match(catalogRuntime, /1303721975/);
+  assert.match(catalogWriter, /REPO_GOVERNANCE_CATALOG_PRIVATE_KEY/);
+  assert.match(catalogWriter, /release-metadata\.json/);
+  assert.match(catalogVerifier, /verifyReleaseCatalog/);
+  for (const script of [sourceChecker, seaBuilder, releasePackager, indexWriter, catalogWriter, catalogVerifier]) {
     assert.doesNotMatch(script, /new URL\([^)]+import\.meta\.url\)\.pathname/);
   }
 });
