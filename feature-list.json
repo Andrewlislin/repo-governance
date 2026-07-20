@@ -64,6 +64,21 @@
       "id": "v1.1.1-pr-5-release",
       "description": "Bilingual documentation, packaging, version 1.1.1 release metadata, and end-to-end acceptance",
       "passes": true
+    },
+    {
+      "id": "v1.2-pr-1-launcher-path",
+      "description": "Version-aware launcher routing, PATH command entry, install/update migration, and CLI output contracts",
+      "passes": false
+    },
+    {
+      "id": "v1.2-pr-2-engine-registry-prune",
+      "description": "User-level engine registry, repository registration, engine listing, and safe pruning",
+      "passes": false
+    },
+    {
+      "id": "v1.2-pr-3-version-advisory",
+      "description": "Verified release catalog, explicit version check, cached upgrade advisory, and read-only preflight reporting",
+      "passes": false
     }
   ]
 }
