@@ -7,6 +7,7 @@ import { governanceDataRoot } from "./paths.mjs";
 import { run } from "./process.mjs";
 import { installSkills } from "./skills-install.mjs";
 import { treeDigest } from "./tree-digest.mjs";
+import { assertRuntimeEntriesAvailable, installRuntimeEntries } from "./launcher-install.mjs";
 
 function digest(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -52,7 +53,9 @@ function installReleaseDirectory(bundle, { env, verifyAttestation, archivePath =
     throw new GovernanceError("Release provenance identity is invalid.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
   }
   const cli = join(bundle, manifest.cli.file);
-  const dispatcher = join(bundle, manifest.dispatcher.file);
+  const launcherDefinition = manifest.launcher || manifest.dispatcher;
+  if (!launcherDefinition?.file || !launcherDefinition?.sha256) throw new GovernanceError("Release launcher metadata is missing.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
+  const dispatcher = join(bundle, launcherDefinition.file);
   const skillsSource = join(bundle, "skills");
   const agentAssetsSource = manifest.agentAssetsSha256 ? join(bundle, "agent-assets") : null;
   if (!existsSync(skillsSource) || treeDigest(skillsSource) !== manifest.skillsSha256) throw new GovernanceError("Release Skill tree digest verification failed.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
@@ -66,25 +69,23 @@ function installReleaseDirectory(bundle, { env, verifyAttestation, archivePath =
   }
   if (!verifyAttestation(manifestPath, manifest)) throw new GovernanceError("The release manifest must have a valid GitHub artifact attestation.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
   if (archivePath && !verifyAttestation(archivePath, manifest)) throw new GovernanceError("The release archive must have a valid GitHub artifact attestation.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
-  for (const [path, expected] of [[cli, manifest.cli.sha256], [dispatcher, manifest.dispatcher.sha256]]) {
+  for (const [path, expected] of [[cli, manifest.cli.sha256], [dispatcher, launcherDefinition.sha256]]) {
     if (!existsSync(path) || digest(path) !== expected) throw new GovernanceError("Release artifact checksum verification failed.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
     if (!archivePath && !verifyAttestation(path, manifest)) throw new GovernanceError("A valid GitHub artifact attestation is required; checksum alone is insufficient.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
   }
   const dataRoot = governanceDataRoot(env);
   const engineDirectory = join(dataRoot, "engines", manifest.engineCommitSha);
-  const dispatcherTarget = join(dataRoot, process.platform === "win32" ? "dispatcher.exe" : "dispatcher");
   if (existsSync(engineDirectory)) throw new GovernanceError("Engine version is already installed; refusing an implicit replacement.", { code: "RG_INSTALL" });
-  if (existsSync(dispatcherTarget)) throw new GovernanceError("Stable dispatcher already exists; use repo-governance update instead of install.", { code: "RG_INSTALL" });
+  assertRuntimeEntriesAvailable({ env, engineCommitSha: manifest.engineCommitSha });
+  let skills = null;
   try {
     mkdirSync(engineDirectory, { recursive: true });
     const executable = join(engineDirectory, process.platform === "win32" ? "repo-governance.exe" : "repo-governance");
     cpSync(cli, executable);
-    cpSync(dispatcher, dispatcherTarget);
     const agentAssets = agentAssetsSource ? join(engineDirectory, "agent-assets") : null;
     if (agentAssetsSource) cpSync(agentAssetsSource, agentAssets, { recursive: true });
     if (process.platform !== "win32") {
       chmodSync(executable, 0o755);
-      chmodSync(dispatcherTarget, 0o755);
     }
     writeFileSync(join(engineDirectory, "engine-manifest.json"), `${JSON.stringify({
       engineVersion: manifest.engineVersion,
@@ -92,11 +93,24 @@ function installReleaseDirectory(bundle, { env, verifyAttestation, archivePath =
       sha256: manifest.cli.sha256,
       ...(manifest.agentAssetsSha256 ? { agentAssetsSha256: manifest.agentAssetsSha256 } : {}),
     }, null, 2)}\n`);
-    const skills = installSkills(skillsSource, { env });
-    return { engineVersion: manifest.engineVersion, engineCommitSha: manifest.engineCommitSha, dataRoot, agentAssets, skills };
+    skills = installSkills(skillsSource, { env });
+    const runtime = installRuntimeEntries({
+      launcherSource: dispatcher,
+      engineVersion: manifest.engineVersion,
+      engineCommitSha: manifest.engineCommitSha,
+      env,
+    });
+    return {
+      engineVersion: manifest.engineVersion,
+      engineCommitSha: manifest.engineCommitSha,
+      dataRoot,
+      agentAssets,
+      skills,
+      ...runtime,
+    };
   } catch (error) {
     rmSync(engineDirectory, { recursive: true, force: true });
-    rmSync(dispatcherTarget, { force: true });
+    for (const name of skills?.installed || []) rmSync(join(skills.root, name), { recursive: true, force: true });
     throw error;
   }
 }

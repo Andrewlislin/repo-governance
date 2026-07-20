@@ -14,7 +14,9 @@ function envForTest() {
 function createBundle(config, { badChecksum = false } = {}) {
   const bundle = temporaryDirectory("repo-governance-bundle-");
   const engine = Buffer.from("verified engine");
+  const launcher = Buffer.from("verified launcher");
   write(join(bundle, "repo-governance"), engine, 0o755);
+  write(join(bundle, "dispatcher"), launcher, 0o755);
   const next = { ...config, engineVersion: "0.2.0", engineCommitSha: "b".repeat(40) };
   write(join(bundle, "managed", ".repo-governance.json"), `${JSON.stringify(next, null, 2)}\n`);
   write(join(bundle, "update-manifest.json"), `${JSON.stringify({
@@ -26,6 +28,10 @@ function createBundle(config, { badChecksum = false } = {}) {
     engine: {
       file: "repo-governance",
       sha256: badChecksum ? "0".repeat(64) : createHash("sha256").update(engine).digest("hex"),
+    },
+    launcher: {
+      file: "dispatcher",
+      sha256: createHash("sha256").update(launcher).digest("hex"),
     },
   }, null, 2)}\n`);
   return { bundle, next };
@@ -74,4 +80,22 @@ test("successful update rereads consistent version fields", () => {
   assert.equal(saved.engineVersion, next.engineVersion);
   assert.equal(saved.engineCommitSha, next.engineCommitSha);
   assert.equal(saved.diffFingerprintAlgorithm, next.diffFingerprintAlgorithm);
+  const pointer = JSON.parse(readFileSync(join(env.XDG_DATA_HOME, "repo-governance", "default-engine.json"), "utf8"));
+  assert.equal(pointer.engineCommitSha, next.engineCommitSha);
+  assert.equal(result.defaultEngineCommitSha, next.engineCommitSha);
+  assert.ok(existsSync(result.launcherPath));
+  assert.ok(existsSync(result.commandPath));
+});
+
+test("launcher replacement failure restores repository, engine, command entry, and default pointer", () => {
+  const env = envForTest();
+  const { repo, config } = configuredRepo();
+  const before = readFileSync(join(repo, ".repo-governance.json"), "utf8");
+  const { bundle, next } = createBundle(config);
+  assert.throws(() => controlledUpdate(repo, bundle, { env, failAfterLauncher: true }), /launcher installation failure/);
+  assert.equal(readFileSync(join(repo, ".repo-governance.json"), "utf8"), before);
+  const dataRoot = join(env.XDG_DATA_HOME, "repo-governance");
+  assert.equal(existsSync(join(dataRoot, "engines", next.engineCommitSha)), false);
+  assert.equal(existsSync(join(dataRoot, "default-engine.json")), false);
+  assert.equal(existsSync(join(env.HOME, ".local", "bin", "repo-governance")), false);
 });

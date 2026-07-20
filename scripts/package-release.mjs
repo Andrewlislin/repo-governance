@@ -67,6 +67,7 @@ const manifest = {
   artifactLayout: "platform-archive-v1",
   cli,
   dispatcher,
+  launcher: dispatcher,
   skillsSha256: treeDigest(join(staging, "skills")),
   policyAssetsSha256: treeDigest(join(staging, "policy-assets")),
   agentAssetsSha256: treeDigest(join(staging, "agent-assets")),

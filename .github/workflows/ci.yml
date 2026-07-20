@@ -23,22 +23,22 @@ jobs:
         run: npm ci
       - name: Static checks and tests
         run: npm run check
-      - name: Build self-contained CLI and dispatcher
+      - name: Build self-contained CLI and version-aware launcher
         run: npm run build:sea
       - name: Verify executables without PATH or a global Node runtime
         shell: bash
         run: |
           set -euo pipefail
           cli="$PWD/dist/repo-governance"
-          dispatcher="$PWD/dist/dispatcher"
+          launcher="$PWD/dist/dispatcher"
           env PATH= "$cli" version --json
           temporary_repository="$(mktemp -d)"
           set +e
-          dispatcher_output="$(cd "$temporary_repository" && env PATH= "$dispatcher" 2>&1)"
-          dispatcher_status=$?
+          launcher_output="$(cd "$temporary_repository" && env PATH= "$launcher" 2>&1)"
+          launcher_status=$?
           set -e
-          test "$dispatcher_status" = "2"
-          test "$dispatcher_output" = "Repository is not initialized. Run repo-governance init before the first push."
+          test "$launcher_status" = "2"
+          test "$launcher_output" = "No default engine is configured. Install a verified repo-governance release first."
 
   governance:
     name: repo-governance-e2e

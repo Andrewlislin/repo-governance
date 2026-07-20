@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { basename, join } from "node:path";
 import test from "node:test";
@@ -41,6 +41,7 @@ function bundle(overrides = {}) {
     platform: `${process.platform}-${process.arch}`,
     cli: { file: cliName, sha256: digest(cli) },
     dispatcher: { file: dispatcherName, sha256: digest(dispatcher) },
+    launcher: { file: dispatcherName, sha256: digest(dispatcher) },
     skillsSha256: treeDigest(join(root, "skills")),
     policyAssetsSha256: treeDigest(join(root, "policy-assets")),
     agentAssetsSha256: treeDigest(join(root, "agent-assets")),
@@ -82,6 +83,40 @@ test("verified bundle installs CLI, dispatcher, versioned Agent assets, and Skil
   assert.equal(engineManifest.agentAssetsSha256, manifest.agentAssetsSha256);
   assert.equal(result.dataRoot, join(env.XDG_DATA_HOME, "repo-governance"));
   assert.equal(result.skills.root, join(env.CODEX_HOME, "skills"));
+  assert.ok(existsSync(result.launcherPath));
+  assert.ok(existsSync(result.commandPath));
+  assert.equal(result.defaultEngineCommitSha, manifest.engineCommitSha);
+  assert.equal(result.pathConfigured, false);
+  assert.match(result.actionRequired, /export PATH=/);
+  assert.match(result.message, /current shell cannot use the bare repo-governance command/);
+});
+
+test("release install refuses an unmanaged command entry without replacing it", () => {
+  const fixture = bundle();
+  const env = isolatedEnv();
+  const commandPath = join(env.HOME, ".local", "bin", "repo-governance");
+  write(commandPath, "unmanaged\n", 0o755);
+  assert.throws(
+    () => installReleaseBundle(fixture.root, { env, verifyAttestation: () => true }),
+    /unmanaged repo-governance command entry/,
+  );
+  assert.equal(readFileSync(commandPath, "utf8"), "unmanaged\n");
+  assert.equal(existsSync(join(env.XDG_DATA_HOME, "repo-governance", "engines", fixture.manifest.engineCommitSha)), false);
+});
+
+test("v1.2 install reuses identical v1.1.1 Skills and safely adds the launcher beside the legacy dispatcher", () => {
+  const fixture = bundle();
+  const env = isolatedEnv();
+  const dataRoot = join(env.XDG_DATA_HOME, "repo-governance");
+  write(join(dataRoot, process.platform === "win32" ? "dispatcher.exe" : "dispatcher"), "legacy-v1.1.1", 0o755);
+  mkdirSync(env.CODEX_HOME, { recursive: true });
+  cpSync(join(fixture.root, "skills"), join(env.CODEX_HOME, "skills"), { recursive: true });
+  const result = installReleaseBundle(fixture.root, { env, verifyAttestation: () => true });
+  assert.deepEqual(result.skills.installed, []);
+  assert.deepEqual(result.skills.reused.sort(), ["example-skill", "repo-governance-agent-gate"]);
+  assert.ok(existsSync(result.launcherPath));
+  assert.ok(existsSync(result.commandPath));
+  assert.equal(readFileSync(result.legacyDispatcherPath, "utf8"), "legacy-v1.1.1");
 });
 
 for (const format of ["tar.gz", "zip"]) {

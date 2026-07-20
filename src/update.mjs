@@ -6,12 +6,18 @@ import { readConfig } from "./config.mjs";
 import { GovernanceError } from "./errors.mjs";
 import { trackedChanges } from "./git.mjs";
 import { governanceDataRoot } from "./paths.mjs";
+import { installRuntimeEntries } from "./launcher-install.mjs";
 
 function sha256(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
-export function controlledUpdate(repo, bundleDirectory, { env = process.env, failAfterReplace = false } = {}) {
+export function controlledUpdate(repo, bundleDirectory, {
+  env = process.env,
+  failAfterReplace = false,
+  failAfterLauncher = false,
+  platform = process.platform,
+} = {}) {
   const current = readConfig(repo, { enforceEngine: false });
   const dirty = trackedChanges(repo, current.managedFiles || [".repo-governance.json"]);
   if (dirty.length > 0) throw new GovernanceError("Managed files have uncommitted changes; update was not started.", { code: "RG_UPDATE_DIRTY", details: { dirty } });
@@ -19,6 +25,13 @@ export function controlledUpdate(repo, bundleDirectory, { env = process.env, fai
   if (manifest.schemaVersion !== 1 || manifest.diffFingerprintAlgorithm !== current.diffFingerprintAlgorithm) throw new GovernanceError("Update manifest is incompatible with this configuration.", { code: "RG_UPDATE_MANIFEST" });
   const engineSource = join(bundleDirectory, manifest.engine.file);
   if (!existsSync(engineSource) || sha256(engineSource) !== manifest.engine.sha256) throw new GovernanceError("New engine checksum verification failed.", { code: "RG_UPDATE_ENGINE" });
+  if (!manifest.launcher?.file || !manifest.launcher?.sha256) {
+    throw new GovernanceError("Update manifest must include the verified version-aware launcher.", { code: "RG_UPDATE_LAUNCHER" });
+  }
+  const launcherSource = join(bundleDirectory, manifest.launcher.file);
+  if (!existsSync(launcherSource) || sha256(launcherSource) !== manifest.launcher.sha256) {
+    throw new GovernanceError("New launcher checksum verification failed.", { code: "RG_UPDATE_LAUNCHER" });
+  }
   const dataRoot = governanceDataRoot(env);
   const engineDirectory = join(dataRoot, "engines", manifest.engineCommitSha);
   const staging = mkdtempSync(join(tmpdir(), "repo-governance-update-"));
@@ -30,9 +43,9 @@ export function controlledUpdate(repo, bundleDirectory, { env = process.env, fai
     mkdirSync(join(dataRoot, "engines"), { recursive: true });
     if (existsSync(engineDirectory)) throw new GovernanceError("Target engine is already installed; refusing to replace it implicitly.", { code: "RG_UPDATE_ENGINE" });
     mkdirSync(engineDirectory, { recursive: false });
-    const engineTarget = join(engineDirectory, process.platform === "win32" ? "repo-governance.exe" : "repo-governance");
+    const engineTarget = join(engineDirectory, platform === "win32" ? "repo-governance.exe" : "repo-governance");
     cpSync(engineSource, engineTarget);
-    if (process.platform !== "win32") chmodSync(engineTarget, 0o755);
+    if (platform !== "win32") chmodSync(engineTarget, 0o755);
     writeFileSync(join(engineDirectory, "engine-manifest.json"), `${JSON.stringify({ engineVersion: manifest.engineVersion, engineCommitSha: manifest.engineCommitSha, sha256: manifest.engine.sha256 }, null, 2)}\n`);
     engineInstalled = true;
     for (const relative of manifest.managedFiles) {
@@ -61,8 +74,26 @@ export function controlledUpdate(repo, bundleDirectory, { env = process.env, fai
     if (reread.engineVersion !== manifest.engineVersion || reread.engineCommitSha !== manifest.engineCommitSha || reread.diffFingerprintAlgorithm !== manifest.diffFingerprintAlgorithm) {
       throw new GovernanceError("Post-update consistency verification failed.", { code: "RG_UPDATE_VERIFY" });
     }
+    const runtime = installRuntimeEntries({
+      launcherSource,
+      engineVersion: reread.engineVersion,
+      engineCommitSha: reread.engineCommitSha,
+      env,
+      platform,
+      failAfterLauncher,
+    });
     rmSync(staging, { recursive: true, force: true });
-    return { updated: true, engineVersion: reread.engineVersion, engineCommitSha: reread.engineCommitSha };
+    return {
+      updated: true,
+      engineVersion: reread.engineVersion,
+      engineCommitSha: reread.engineCommitSha,
+      defaultEngineCommitSha: reread.engineCommitSha,
+      commandPath: runtime.commandPath,
+      launcherPath: runtime.launcherPath,
+      pathConfigured: runtime.pathConfigured,
+      actionRequired: runtime.actionRequired,
+      message: `Updated repo-governance to ${reread.engineVersion} (${reread.engineCommitSha}).`,
+    };
   } catch (error) {
     for (const relative of replaced.reverse()) {
       const target = join(repo, relative);

@@ -95,7 +95,9 @@ export async function main(argv, context = {}) {
     }
     if (command === "install") {
       if (!parsed.flags.bundle) throw new GovernanceError("--bundle is required.", { code: "RG_INVOCATION" });
-      emit(installReleaseBundle(parsed.flags.bundle, { env }), json, stdout);
+      const result = (context.installReleaseBundle || installReleaseBundle)(parsed.flags.bundle, { env });
+      emit(result, json, stdout);
+      if (!json && result.actionRequired) emit(`Action required: ${result.actionRequired}`, false, stdout);
       return 0;
     }
     if (command === "skills" && subcommand === "install") {
@@ -207,7 +209,7 @@ export async function main(argv, context = {}) {
     }
     if (command === "update") {
       if (!parsed.flags.bundle) throw new GovernanceError("--bundle is required; push and check never download an engine implicitly.", { code: "RG_INVOCATION" });
-      emit(controlledUpdate(repo, parsed.flags.bundle, { env }), json, stdout);
+      emit((context.controlledUpdate || controlledUpdate)(repo, parsed.flags.bundle, { env }), json, stdout);
       return 0;
     }
     throw new GovernanceError(`Unknown command: ${parsed.positional.join(" ")}`, { code: "RG_INVOCATION" });

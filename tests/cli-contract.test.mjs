@@ -136,3 +136,54 @@ test("preflight invocation errors retain the complete blocked contract", async (
   assert.equal(report.error.code, "RG_INVOCATION");
   assert.deepEqual(Object.keys(report.inspection), ["gitRepository", "configPresent", "configValid", "engineAligned", "hookConnected"]);
 });
+
+test("install CLI keeps human PATH guidance separate from its stable JSON contract", async () => {
+  const installation = {
+    message: "Created the managed command entry, but the current shell cannot use the bare repo-governance command until PATH is updated.",
+    commandPath: "/home/test/.local/bin/repo-governance",
+    launcherPath: "/data/repo-governance/launcher/repo-governance-launcher",
+    defaultEngineCommitSha: "b".repeat(40),
+    pathConfigured: false,
+    actionRequired: 'export PATH="/home/test/.local/bin:$PATH"',
+  };
+  const installReleaseBundle = () => installation;
+  const jsonOut = sink();
+  assert.equal(await main(["install", "--bundle", "/verified", "--json"], {
+    stdout: jsonOut.stream,
+    installReleaseBundle,
+  }), 0);
+  assert.deepEqual(JSON.parse(jsonOut.value()), installation);
+
+  const humanOut = sink();
+  assert.equal(await main(["install", "--bundle", "/verified"], {
+    stdout: humanOut.stream,
+    installReleaseBundle,
+  }), 0);
+  assert.match(humanOut.value(), /current shell cannot use the bare repo-governance command/);
+  assert.match(humanOut.value(), /Action required: export PATH=/);
+});
+
+test("update CLI emits a stable human message and structured default engine identity", async () => {
+  const repo = repository();
+  const result = {
+    updated: true,
+    engineVersion: "1.2.0",
+    engineCommitSha: "b".repeat(40),
+    defaultEngineCommitSha: "b".repeat(40),
+    message: `Updated repo-governance to 1.2.0 (${"b".repeat(40)}).`,
+  };
+  const jsonOut = sink();
+  assert.equal(await main(["update", "--bundle", "/verified", "--json"], {
+    cwd: repo,
+    stdout: jsonOut.stream,
+    controlledUpdate: () => result,
+  }), 0);
+  assert.deepEqual(JSON.parse(jsonOut.value()), result);
+  const humanOut = sink();
+  assert.equal(await main(["update", "--bundle", "/verified"], {
+    cwd: repo,
+    stdout: humanOut.stream,
+    controlledUpdate: () => result,
+  }), 0);
+  assert.equal(humanOut.value(), `${result.message}\n`);
+});

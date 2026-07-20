@@ -37,7 +37,7 @@ function smokeTestExecutable(name, executable) {
   const cwd = mkdtempSync(join(tmpdir(), "repo-governance-sea-smoke-"));
   try {
     const result = spawnSync(executable, [], { cwd, encoding: "utf8" });
-    if (result.status !== 2 || !result.stderr.includes("Repository is not initialized")) throw new Error("SEA dispatcher smoke test did not execute the expected offline failure path.");
+    if (result.status !== 2 || !result.stderr.includes("No default engine is configured")) throw new Error("SEA launcher smoke test did not execute the expected offline no-default-engine path.");
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

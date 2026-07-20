@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { installLocalFromSource } from "../scripts/install-local.mjs";
 import { treeDigest } from "../src/tree-digest.mjs";
+import { MANAGED_ENTRY_MARKER } from "../src/launcher-install.mjs";
 import { temporaryDirectory, write } from "./helpers.mjs";
 
 function digest(bytes) {
@@ -62,6 +63,12 @@ test("local source install copies CLI, dispatcher, manifests, versioned Agent as
   assert.equal(result.executable, join(engineDirectory, cliName));
   assert.ok(existsSync(join(engineDirectory, cliName)));
   assert.ok(existsSync(join(dataRoot, dispatcherName)));
+  assert.ok(existsSync(result.launcherPath));
+  assert.ok(existsSync(result.commandPath));
+  assert.match(readFileSync(result.commandPath, "utf8"), new RegExp(MANAGED_ENTRY_MARKER));
+  assert.equal(result.defaultEngineCommitSha, commitSha);
+  assert.equal(result.pathConfigured, false);
+  assert.match(result.actionRequired, /export PATH=/);
   assert.ok(existsSync(join(result.skills.root, "example-skill", "SKILL.md")));
   assert.ok(existsSync(join(result.skills.root, "example-skill", "references", "playbook.md")));
   assert.ok(existsSync(join(result.agentAssets, "playbooks", "example-skill.md")));
@@ -76,6 +83,7 @@ test("local source install copies CLI, dispatcher, manifests, versioned Agent as
   assert.equal(manifest.engineVersion, "1.0.0");
   assert.equal(manifest.cli.sha256, digest("cli"));
   assert.equal(manifest.dispatcher.sha256, digest("dispatcher"));
+  assert.equal(manifest.launcher.sha256, digest("dispatcher"));
   assert.equal(manifest.skillsSha256, treeDigest(join(root, "adapters", "codex", "skills")));
   assert.equal(manifest.playbooksSha256, treeDigest(join(root, "playbooks")));
   assert.equal(manifest.agentAssetsSha256, treeDigest(result.agentAssets));
@@ -103,11 +111,36 @@ test("local source install rejects unsupported Node versions and invalid commit 
   assert.throws(() => installLocalFromSource({ root, env: isolatedEnv(), nodeVersion: "22.1.0", runCommand: runner({ commitSha: "short" }).runCommand }), /40-character/);
 });
 
-test("local source install refuses implicit replacement", () => {
+test("local source install safely migrates an existing v1.1.1 dispatcher", () => {
   const { root, dispatcherName, commitSha } = fixture();
   const env = isolatedEnv();
   write(join(env.XDG_DATA_HOME, "repo-governance", dispatcherName), "existing", 0o755);
-  assert.throws(() => installLocalFromSource({ root, env, nodeVersion: "22.1.0", runCommand: runner({ commitSha }).runCommand }), /Stable dispatcher already exists/);
+  const result = installLocalFromSource({ root, env, nodeVersion: "22.1.0", runCommand: runner({ commitSha }).runCommand });
+  assert.equal(readFileSync(join(env.XDG_DATA_HOME, "repo-governance", dispatcherName), "utf8"), "existing");
+  assert.ok(existsSync(result.launcherPath));
+  assert.ok(existsSync(result.commandPath));
+});
+
+test("local source install refuses an unmanaged command entry before creating an engine", () => {
+  const { root, commitSha } = fixture();
+  const env = isolatedEnv();
+  const commandPath = join(env.HOME, ".local", "bin", "repo-governance");
+  write(commandPath, "unmanaged\n", 0o755);
+  assert.throws(
+    () => installLocalFromSource({ root, env, nodeVersion: "22.1.0", runCommand: runner({ commitSha }).runCommand }),
+    /unmanaged repo-governance command entry/,
+  );
+  assert.equal(existsSync(join(env.XDG_DATA_HOME, "repo-governance", "engines", commitSha)), false);
+});
+
+test("local source install reports bare command availability only when the bin directory is in PATH", () => {
+  const { root, commitSha } = fixture();
+  const env = isolatedEnv();
+  env.PATH = `${join(env.HOME, ".local", "bin")}:${env.PATH}`;
+  const result = installLocalFromSource({ root, env, nodeVersion: "22.1.0", runCommand: runner({ commitSha }).runCommand });
+  assert.equal(result.pathConfigured, true);
+  assert.equal(result.actionRequired, null);
+  assert.match(result.message, /Installed managed repo-governance command entry/);
 });
 
 test("README source install commands match the implemented script", () => {

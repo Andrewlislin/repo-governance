@@ -68,7 +68,7 @@
     {
       "id": "v1.2-pr-1-launcher-path",
       "description": "Version-aware launcher routing, PATH command entry, install/update migration, and CLI output contracts",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.2-pr-2-engine-registry-prune",

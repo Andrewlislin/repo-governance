@@ -28,9 +28,9 @@ npm ci
 npm run install:local
 ```
 
-该命令会构建本地 engine，安装到标准 repo-governance 数据目录，并输出下一步安装 hooks 的命令。
+该命令会构建本地 engine 和自包含的版本感知 launcher，安装到标准 repo-governance 数据目录，并在 `~/.local/bin/repo-governance`（Windows 为用户级 bin 目录）创建托管的裸命令入口。安装器绝不修改 shell profile。若该 bin 目录不在当前 `PATH` 中，安装结果会返回 `pathConfigured:false` 与可复制的 `actionRequired` 命令，并明确说明“入口已创建，但当前 shell 尚不能使用裸命令”。
 
-安装的 pre-push hook 保持精简且离线运行。它调用平台数据目录中的稳定 dispatcher；dispatcher 从 `.repo-governance.json` 读取 `engineCommitSha`，验证锁定的可执行文件，然后运行 `repo-governance check`。如果引擎缺失或损坏，检查会明确失败并提示执行 `repo-governance update`。
+安装的 pre-push hook 保持精简且离线运行。它调用平台数据目录中的稳定 launcher；launcher 从 `.repo-governance.json` 读取 `engineCommitSha`，验证锁定的可执行文件，然后运行 `repo-governance check`。同一个裸命令会把不同受管仓库路由到各自锁定的 engine；全局命令和无配置仓库的接入命令使用原子维护的默认 engine 指针。仓库配置损坏时直接失败，绝不降级到默认 engine。
 
 ## Agent 工作前预检与自动接入策略
 
@@ -130,8 +130,8 @@ Release 与源码安装会把规范 Playbook、两套 adapter 和可选 Hook 模
 
 ## 发布与安装
 
-发布构建需要 Node.js 22.x，并为 CLI 和稳定 dispatcher 生成各平台的 Node SEA 可执行文件。GitHub Releases 每个平台只发布一个压缩包（Linux/macOS 使用 `.tar.gz`，Windows 使用 `.zip`），并附带顶层 `SHA256SUMS` 和 `release-index.json`；不使用 GitHub Packages。每个压缩包内部包含 CLI、dispatcher、六个 Codex Skill、规范 Playbook、Codex/Claude adapter 与 Hook 模板、包括 `agent-policy.schema.json` 在内的策略 Schema、内部 manifest 和平台内校验文件。发布产物包含 SHA-256 元数据和 GitHub artifact attestation，后者绑定到 `Andrewlislin/repo-governance`、`.github/workflows/release.yml`、源码提交、平台压缩包以及 release manifest。经过 attestation 的 release manifest 还会绑定确定性的 Skill、策略资产和 Agent 资产目录摘要。如果 checksum 或 attestation 任一验证失败，安装都会失败；绝不单独信任 checksum。
+发布构建需要 Node.js 22.x，并为 CLI engine 和版本感知 launcher 生成各平台的 Node SEA 可执行文件。launcher 自包含，不依赖业务仓库的 Node 运行时。GitHub Releases 每个平台只发布一个压缩包（Linux/macOS 使用 `.tar.gz`，Windows 使用 `.zip`），并附带顶层 `SHA256SUMS` 和 `release-index.json`；不使用 GitHub Packages。每个压缩包内部包含 CLI、launcher、六个 Codex Skill、规范 Playbook、Codex/Claude adapter 与 Hook 模板、包括 `agent-policy.schema.json` 在内的策略 Schema、内部 manifest 和平台内校验文件。发布产物包含 SHA-256 元数据和 GitHub artifact attestation，后者绑定到 `Andrewlislin/repo-governance`、`.github/workflows/release.yml`、源码提交、平台压缩包以及 release manifest。经过 attestation 的 release manifest 还会绑定确定性的 Skill、策略资产和 Agent 资产目录摘要。如果 checksum 或 attestation 任一验证失败，安装都会失败；绝不单独信任 checksum。
 
-在 macOS/Linux 上，CLI/dispatcher 数据使用 `${XDG_DATA_HOME:-$HOME/.local/share}/repo-governance`；在 Windows 上使用 `%LOCALAPPDATA%/repo-governance`。Skills 使用 `${CODEX_HOME:-$HOME/.codex}/skills`。可选的 shareable-index 边界记录在 `adapters/` 下，绝不会成为公开项目的运行时依赖。
+在 macOS/Linux 上，engine、launcher、默认指针和兼容 dispatcher 数据使用 `${XDG_DATA_HOME:-$HOME/.local/share}/repo-governance`；在 Windows 上使用 `%LOCALAPPDATA%/repo-governance`。POSIX 使用临时文件与 atomic rename 更新 launcher 和指针；Windows 使用版本化 launcher 路径，绝不覆盖正在执行的二进制，入口验证切换后才生效，被锁定的旧文件留待后续 prune。Skills 使用 `${CODEX_HOME:-$HOME/.codex}/skills`。可选的 shareable-index 边界记录在 `adapters/` 下，绝不会成为公开项目的运行时依赖。
 
 面向本地 hooks、CI、Codex 和 Claude Code 的确定性仓库治理工具
