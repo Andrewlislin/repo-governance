@@ -38,7 +38,7 @@ function extractArchive(archivePath, destination) {
 }
 
 function defaultAttestationVerifier(path, manifest) {
-  const signer = "Andrewlislin/repo-governance/.github/workflows/release.yml";
+  const signer = "CoaseEdge/repo-governance/.github/workflows/release.yml";
   const result = run("gh", ["attestation", "verify", path, "--repo", manifest.repository, "--signer-workflow", signer, "--format", "json"], { allowFailure: true });
   if (result.status !== 0) return false;
   const verifiedProvenance = result.stdout;
@@ -49,7 +49,7 @@ function installReleaseDirectory(bundle, { env, verifyAttestation, archivePath =
   const manifestPath = join(bundle, "release-manifest.json");
   if (!existsSync(manifestPath)) throw new GovernanceError("Release manifest is missing.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  if (manifest.repository !== "Andrewlislin/repo-governance" || manifest.buildWorkflow !== ".github/workflows/release.yml" || !/^[0-9a-f]{40}$/.test(manifest.engineCommitSha || "") || manifest.attestationRequired !== true || manifest.platform !== `${process.platform}-${process.arch}`) {
+  if (manifest.repository !== "CoaseEdge/repo-governance" || manifest.buildWorkflow !== ".github/workflows/release.yml" || !/^[0-9a-f]{40}$/.test(manifest.engineCommitSha || "") || manifest.attestationRequired !== true || manifest.platform !== `${process.platform}-${process.arch}`) {
     throw new GovernanceError("Release provenance identity is invalid.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
   }
   const cli = join(bundle, manifest.cli.file);

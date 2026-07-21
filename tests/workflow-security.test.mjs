@@ -51,8 +51,8 @@ test("central CI and package release match the locked engine identity", () => {
   const config = JSON.parse(readFileSync(join(root, ".repo-governance.json"), "utf8"));
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const workflow = parse(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8"));
-  const governanceRef = `Andrewlislin/repo-governance/.github/workflows/governance.yml@${config.engineCommitSha}`;
-  const reporterRef = `uses:Andrewlislin/repo-governance/.github/workflows/reporter.yml@${config.engineCommitSha}`;
+  const governanceRef = `CoaseEdge/repo-governance/.github/workflows/governance.yml@${config.engineCommitSha}`;
+  const reporterRef = `uses:CoaseEdge/repo-governance/.github/workflows/reporter.yml@${config.engineCommitSha}`;
   assert.equal(config.engineVersion, packageJson.version);
   assert.equal(workflow.jobs.governance.uses, governanceRef);
   assert.ok(config.workflowAllowedEntries.includes(`uses:${governanceRef}`));
@@ -122,10 +122,10 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   }
 });
 
-test("v1.1.1 release inputs contain every Agent gate and policy asset", () => {
+test("v1.2.0 release inputs contain every Agent gate and policy asset", () => {
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const packageLock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
-  assert.equal(packageJson.version, "1.1.1");
+  assert.equal(packageJson.version, "1.2.0");
   assert.equal(packageLock.version, packageJson.version);
   assert.equal(packageLock.packages[""].version, packageJson.version);
 

@@ -150,7 +150,7 @@ test("README source install commands match the implemented script", () => {
   const english = readFileSync(new URL("../README.md", import.meta.url), "utf8");
   const chinese = readFileSync(new URL("../README.zh-CN.md", import.meta.url), "utf8");
   for (const contents of [english, chinese]) {
-    assert.match(contents, /git clone https:\/\/github\.com\/Andrewlislin\/repo-governance\.git/);
+    assert.match(contents, /git clone https:\/\/github\.com\/CoaseEdge\/repo-governance\.git/);
     assert.match(contents, /cd repo-governance/);
     assert.match(contents, /npm ci/);
     assert.match(contents, /npm run install:local/);

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "engineVersion": "1.1.1",
+  "engineVersion": "1.2.0",
   "engineCommitSha": "3c627d8f294b328cd7a44a5a6edfb8a923657e3a",
   "diffFingerprintAlgorithm": "git-raw-z-v1-sha256",
   "defaultBranch": "main",
@@ -150,8 +150,8 @@
   "guards": [],
   "policyChecks": [],
   "workflowAllowedEntries": [
-    "uses:Andrewlislin/repo-governance/.github/workflows/governance.yml@3c627d8f294b328cd7a44a5a6edfb8a923657e3a",
-    "uses:Andrewlislin/repo-governance/.github/workflows/reporter.yml@3c627d8f294b328cd7a44a5a6edfb8a923657e3a"
+    "uses:CoaseEdge/repo-governance/.github/workflows/governance.yml@3c627d8f294b328cd7a44a5a6edfb8a923657e3a",
+    "uses:CoaseEdge/repo-governance/.github/workflows/reporter.yml@3c627d8f294b328cd7a44a5a6edfb8a923657e3a"
   ],
   "waiverApprovers": [
     "Andrewlislin"

@@ -1,6 +1,6 @@
 {
   "name": "@andrewlislin/repo-governance",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Deterministic repository governance shared by local hooks, CI, Codex, and Claude Code",
   "type": "module",
   "private": false,
@@ -32,7 +32,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Andrewlislin/repo-governance.git"
+    "url": "git+https://github.com/CoaseEdge/repo-governance.git"
   },
   "files": [
     "bin",

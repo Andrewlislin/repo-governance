@@ -36,7 +36,7 @@ function bundle(overrides = {}) {
     schemaVersion: 1,
     engineVersion: "1.0.0",
     engineCommitSha: "a".repeat(40),
-    repository: "Andrewlislin/repo-governance",
+    repository: "CoaseEdge/repo-governance",
     buildWorkflow: ".github/workflows/release.yml",
     platform: `${process.platform}-${process.arch}`,
     cli: { file: cliName, sha256: digest(cli) },
@@ -228,7 +228,7 @@ test("release index writer publishes only platform archives and top-level checks
     write(join(directory, "release-manifest.json"), `${JSON.stringify({
       engineVersion: "1.0.0",
       engineCommitSha: "a".repeat(40),
-      repository: "Andrewlislin/repo-governance",
+      repository: "CoaseEdge/repo-governance",
       buildWorkflow: ".github/workflows/release.yml",
       platform,
     }, null, 2)}\n`);

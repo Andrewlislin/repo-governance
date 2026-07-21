@@ -93,7 +93,7 @@ export function installLocalFromSource({
       schemaVersion: 1,
       engineVersion: version,
       engineCommitSha: commitSha,
-      repository: "Andrewlislin/repo-governance",
+      repository: "CoaseEdge/repo-governance",
       installKind: "source",
       installedAt,
       platform: `${platform}-${arch}`,

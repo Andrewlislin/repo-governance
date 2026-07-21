@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Andrewlislin/repo-governance/schemas/preset.schema.json",
+  "$id": "https://github.com/CoaseEdge/repo-governance/schemas/preset.schema.json",
   "title": "repo-governance preset",
   "type": "object",
   "additionalProperties": false,

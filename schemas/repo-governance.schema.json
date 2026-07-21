@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Andrewlislin/repo-governance/schemas/repo-governance.schema.json",
+  "$id": "https://github.com/CoaseEdge/repo-governance/schemas/repo-governance.schema.json",
   "title": "Repository governance configuration",
   "type": "object",
   "required": [

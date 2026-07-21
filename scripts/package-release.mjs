@@ -61,7 +61,7 @@ const manifest = {
   schemaVersion: 1,
   engineVersion: version,
   engineCommitSha: commitSha,
-  repository: "Andrewlislin/repo-governance",
+  repository: "CoaseEdge/repo-governance",
   buildWorkflow: ".github/workflows/release.yml",
   platform,
   artifactLayout: "platform-archive-v1",

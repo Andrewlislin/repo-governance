@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Andrewlislin/repo-governance/schemas/automation-report.schema.json",
+  "$id": "https://github.com/CoaseEdge/repo-governance/schemas/automation-report.schema.json",
   "title": "repo-governance automation report",
   "type": "object",
   "required": ["schemaVersion", "command", "ok", "status", "repoPath", "nextActions"],

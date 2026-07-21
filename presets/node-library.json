@@ -28,7 +28,7 @@
     { "id": "check-static", "selector": "static-command", "manifest": "package.json", "command": "check:static", "semantics": "Runs the repository's deterministic static checks.", "tier": "pr-blocking", "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } },
     { "id": "build", "selector": "build-command", "manifest": "package.json", "command": "build", "semantics": "Builds the distributable library artifacts.", "tier": "pr-blocking", "consumers": { "contractTests": ["tests/commands/**"], "docs": ["README.md", "README.zh-CN.md"], "workflows": [".github/workflows/**"] } }
   ],
-  "workflowAllowedEntryTemplates": ["uses:Andrewlislin/repo-governance/.github/workflows/governance.yml@{engineCommitSha}"],
+  "workflowAllowedEntryTemplates": ["uses:CoaseEdge/repo-governance/.github/workflows/governance.yml@{engineCommitSha}"],
   "hookStrategy": "connect-effective-pre-push",
   "ciCaller": { "provider": "github-actions", "commentReporter": false }
 }

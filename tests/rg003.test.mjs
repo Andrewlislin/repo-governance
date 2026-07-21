@@ -8,7 +8,7 @@ function fixture(policyJob, extra = {}) {
   const repo = temporaryDirectory();
   write(join(repo, ".github/workflows/ci.yml"), `name: CI\non: pull_request\njobs:\n${policyJob}\n`);
   const config = baseConfig({
-    workflowAllowedEntries: ["uses:Andrewlislin/repo-governance/action@0123456789012345678901234567890123456789", "run:node scripts/repo-hygiene.mjs"],
+    workflowAllowedEntries: ["uses:CoaseEdge/repo-governance/action@0123456789012345678901234567890123456789", "run:node scripts/repo-hygiene.mjs"],
     guards: [{ id: "repo-hygiene", path: "scripts/repo-hygiene.mjs", entry: "run:node scripts/repo-hygiene.mjs" }],
     policyChecks: [{ workflow: ".github/workflows/ci.yml", job: "policy", steps: ["Governance"], requiredGuards: extra.requiredGuards || [] }],
   });
@@ -16,12 +16,12 @@ function fixture(policyJob, extra = {}) {
 }
 
 test("registered policy step calling central Action passes", () => {
-  const { repo, config } = fixture(`  policy:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Governance\n        uses: Andrewlislin/repo-governance/action@0123456789012345678901234567890123456789`);
+  const { repo, config } = fixture(`  policy:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Governance\n        uses: CoaseEdge/repo-governance/action@0123456789012345678901234567890123456789`);
   assert.deepEqual(evaluateRg003(repo, config).findings, []);
 });
 
 test("unregistered inline command inside formal policy job fails", () => {
-  const { repo, config } = fixture(`  policy:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Governance\n        uses: Andrewlislin/repo-governance/action@0123456789012345678901234567890123456789\n      - name: Inline secret scan\n        run: |\n          grep -R secret .\n          exit 0`);
+  const { repo, config } = fixture(`  policy:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Governance\n        uses: CoaseEdge/repo-governance/action@0123456789012345678901234567890123456789\n      - name: Inline secret scan\n        run: |\n          grep -R secret .\n          exit 0`);
   const result = evaluateRg003(repo, config);
   assert.equal(result.findings.length, 1);
   assert.match(result.findings[0].message, /unregistered run/);
@@ -35,7 +35,7 @@ test("registered repository guard must exist and be invoked exactly", () => {
 });
 
 test("ordinary multiline build and suspicious unregistered jobs are outside the hard gate", () => {
-  const { repo, config } = fixture(`  policy:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Governance\n        uses: Andrewlislin/repo-governance/action@0123456789012345678901234567890123456789\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Build preparation\n        run: |\n          npm ci\n          npm run build\n      - name: Suspicious but unregistered duplicate\n        run: grep -R secret .`);
+  const { repo, config } = fixture(`  policy:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Governance\n        uses: CoaseEdge/repo-governance/action@0123456789012345678901234567890123456789\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Build preparation\n        run: |\n          npm ci\n          npm run build\n      - name: Suspicious but unregistered duplicate\n        run: grep -R secret .`);
   assert.deepEqual(evaluateRg003(repo, config).findings, []);
 });
 
