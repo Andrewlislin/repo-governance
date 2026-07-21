@@ -127,9 +127,10 @@ test("prepare-pr CLI emits the projected check result without remote writes", as
 
 test("preflight CLI treats non-Git state as a normal JSON classification", async () => {
   const cwd = temporaryDirectory("repo-governance-cli-preflight-");
+  const env = { ...process.env, HOME: cwd, XDG_DATA_HOME: join(cwd, "data") };
   const stdout = sink();
   const stderr = sink();
-  const code = await main(["preflight", "--json"], { cwd, stdout: stdout.stream, stderr: stderr.stream, identity });
+  const code = await main(["preflight", "--json"], { cwd, env, stdout: stdout.stream, stderr: stderr.stream, identity });
   assert.equal(code, 1);
   assert.equal(stderr.value(), "");
   const report = JSON.parse(stdout.value());

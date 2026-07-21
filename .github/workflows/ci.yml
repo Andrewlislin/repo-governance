@@ -43,7 +43,7 @@ jobs:
   governance:
     name: repo-governance-e2e
     if: github.event_name == 'pull_request'
-    uses: CoaseEdge/repo-governance/.github/workflows/governance.yml@3c627d8f294b328cd7a44a5a6edfb8a923657e3a
+    uses: CoaseEdge/repo-governance/.github/workflows/governance.yml@d9a8c181076af0154ce9c1abeb2a9260fa985275
     permissions:
       contents: read
       pull-requests: read
