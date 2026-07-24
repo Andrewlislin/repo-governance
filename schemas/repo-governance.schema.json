@@ -208,8 +208,50 @@
           }
         },
         "dependencyPreparation": { "$ref": "#/$defs/dependencyPreparation" },
-        "consumers": { "type": "array", "items": { "type": "object" } }
+        "consumers": { "type": "array", "items": { "$ref": "#/$defs/profileConsumer" } }
       }
+    },
+    "profileConsumer": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "revisionSource"],
+          "properties": {
+            "type": { "const": "pre-push" },
+            "revisionSource": { "const": "pushed-ref-tip" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "workflow", "job", "verificationStep", "trigger", "revisionSource", "executionContext"],
+          "properties": {
+            "type": { "const": "github-actions" },
+            "workflow": { "type": "string", "minLength": 1 },
+            "job": { "type": "string", "minLength": 1 },
+            "verificationStep": { "type": "string", "minLength": 1 },
+            "trigger": { "type": "string", "minLength": 1 },
+            "revisionSource": { "enum": ["pull-request-head", "pull-request-merge", "push-event-sha"] },
+            "executionContext": {
+              "type": "object",
+              "required": ["workingDirectory", "shell", "continueOnError", "stepIf", "jobIf", "defaultsRun", "matrix", "needs", "env", "runner", "container", "timeoutMinutes"],
+              "properties": {
+                "workingDirectory": { "type": "string" },
+                "shell": { "type": ["string", "null"] },
+                "continueOnError": { "type": "boolean" },
+                "stepIf": { "type": ["string", "null"] },
+                "jobIf": { "type": ["string", "null"] },
+                "defaultsRun": { "type": ["object", "null"] },
+                "matrix": { "type": ["object", "null"] },
+                "needs": { "type": "array", "items": { "type": "string" } },
+                "env": { "type": "object" },
+                "runner": { "type": ["string", "array", "null"] },
+                "container": { "type": ["string", "object", "null"] },
+                "timeoutMinutes": { "type": ["number", "null"] }
+              }
+            }
+          }
+        }
+      ]
     },
     "dependencyPreparation": {
       "type": "object",

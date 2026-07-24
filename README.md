@@ -48,6 +48,8 @@ The three gates have separate jobs: Agent preflight discovers whether work may s
 
 RG006 validates the separately versioned execution contract: registered runtimes, exact package-manager identities, dependency preparation, lifecycle policy, ordered build/codegen/test stages, and declared consumers. Static checks never claim clean-checkout or semantic-coverage evidence. See [Execution contracts and RG006](docs/execution-contracts.md).
 
+Each protected workflow is linked only through its profile consumer and checks out the declared event revision with `clean: true`. The job may set up the declared runtime and restore an external package-download cache, but dependency installation, build, code generation, and tests belong to governed execution rather than independent workflow steps.
+
 ## Quick Start for Existing Repositories
 
 Install a verified, version-pinned release first, then run one explicit adoption command:

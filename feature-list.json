@@ -98,7 +98,7 @@
     {
       "id": "v1.3-pr-4-workflow-consumers",
       "description": "Workflow consumer, revision source, checkout, cache, action, and execution-context verification",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.3-pr-5-canonical-base",

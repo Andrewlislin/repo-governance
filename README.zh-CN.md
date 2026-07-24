@@ -48,6 +48,8 @@ repo-governance preflight --json
 
 RG006 校验独立版本化的执行契约：已登记 runtime、精确包管理器身份、依赖准备、生命周期策略、有序 build/codegen/test 阶段与消费者声明。静态检查绝不声称已验证 clean checkout 或语义覆盖。详见 [执行契约与 RG006](docs/execution-contracts.md)。
 
+每个受保护 workflow 只通过 profile consumer 关联，并用 `clean: true` checkout 事件声明的精确 revision。job 可以设置已声明 runtime，并恢复 workspace 外的包下载缓存；依赖安装、build、codegen 与测试必须由受治理执行统一完成，不能成为独立 workflow 步骤。
+
 ## 已有仓库快速接入
 
 先安装经过验证且锁定版本的 release，然后运行一次显式接入命令：

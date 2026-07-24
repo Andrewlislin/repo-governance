@@ -15,7 +15,7 @@ test("dependency preparation hash uses recursively UTF-8-sorted canonical JSON a
   const { runtimes, executionProfiles } = governanceOnlyExecutionContract();
   assert.equal(
     dependencyPreparationDefinitionHash(runtimes[0], executionProfiles[0].dependencyPreparation),
-    "b4f79ed08104b0e05179d04b21b04aa689b36efb4b8e6db51b9c0fc70edae639",
+    "2ae76f3afd45d6c22c0a140466c51e13716ba1d840562e8b16c72b58294cb90f",
   );
 });
 
@@ -75,7 +75,7 @@ test("static check reports execution evidence without claiming clean checkout or
   commitAll(repo, "feature");
   const report = checkRepository(repo, { base });
   assert.equal(report.executionContractVerified, true);
-  assert.equal(report.workflowConsumersVerified, false);
+  assert.equal(report.workflowConsumersVerified, true);
   assert.equal(report.cleanCheckoutVerified, null);
   assert.equal(report.cleanCheckoutStatus, "not-run");
   assert.equal(report.semanticCoverageVerified, false);

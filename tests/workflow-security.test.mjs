@@ -62,7 +62,9 @@ test("central CI and package release match the locked engine identity", () => {
 test("thin caller pins reusable workflow to the same full engine commit", () => {
   const sha = "a".repeat(40);
   const contents = thinWorkflow({ engineVersion: "1.0.0", engineCommitSha: sha });
-  assert.match(contents, new RegExp(`governance\\.yml@${sha}`));
+  assert.match(contents, new RegExp(`repo-governance/action@${sha}`));
+  assert.match(contents, /clean: true/);
+  assert.match(contents, /github\.event\.pull_request\.head\.sha/);
   assert.match(contents, /pull_request:/);
   assert.equal(thinWorkflow({ engineVersion: "dev", engineCommitSha: "development" }), null);
 });

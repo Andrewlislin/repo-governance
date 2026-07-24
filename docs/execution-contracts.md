@@ -11,6 +11,19 @@ Each profile declares:
 - one dependency-preparation contract;
 - local Hook and remote workflow consumers.
 
+`consumers` is the only profile-to-workflow mapping. A pre-push consumer is bound to `pushed-ref-tip`. A GitHub Actions consumer names one workflow, job, verification step, trigger, revision source, and the complete execution context: working directory, shell, continuation behavior, step/job conditions, defaults, matrix, needs, environment, runner, container, and timeout.
+
+Protected PR workflow jobs have one fixed sequence:
+
+```text
+checkout the exact pull-request head with clean: true
+→ set up the registered runtime
+→ optionally restore only an external package-manager download cache
+→ run the immutable governed validation Action
+```
+
+Remote Actions require full 40-character commit SHAs. Local composite Actions, independent dependency/build/test commands, undeclared `run` or `uses` steps, workspace artifact caches, and opaque reusable validation jobs are rejected.
+
 The ordered graph preserves repeated commands. Dynamic shell composition, `||`, `;`, command substitution, and graph cycles are rejected. Repository lifecycle scripts are forbidden by default. If enabled, dependency lifecycle packages must be locked by package name, exact version, integrity, and script stages; repository lifecycle commands must also appear explicitly in the protected `dependencies` stage.
 
 ## Dependency definition hash

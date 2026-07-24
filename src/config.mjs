@@ -81,6 +81,18 @@ export function validateConfig(config, { identity = runtimeIdentity(), enforceEn
     expect(Array.isArray(preparation.hookArgv) && Array.isArray(preparation.ciArgv), `Execution profile ${profile.id} dependency preparation needs hookArgv and ciArgv.`);
     for (const kind of ["contractTests", "docs", "workflows"]) expect(Array.isArray(preparation.consumers?.[kind]) && preparation.consumers[kind].length > 0, `Execution profile ${profile.id} dependency preparation needs ${kind} consumers.`);
     expect(Array.isArray(profile.consumers), `Execution profile ${profile.id} needs consumers.`);
+    for (const consumer of profile.consumers) {
+      expect(["pre-push", "github-actions"].includes(consumer.type), `Execution profile ${profile.id} has an unsupported consumer type.`);
+      if (consumer.type === "pre-push") expect(consumer.revisionSource === "pushed-ref-tip", `Execution profile ${profile.id} pre-push consumer must use pushed-ref-tip.`);
+      else {
+        for (const field of ["workflow", "job", "verificationStep", "trigger", "revisionSource"]) expect(typeof consumer[field] === "string" && consumer[field].length > 0, `Execution profile ${profile.id} GitHub consumer needs ${field}.`);
+        expect(["pull-request-head", "pull-request-merge", "push-event-sha"].includes(consumer.revisionSource), `Execution profile ${profile.id} has an invalid workflow revisionSource.`);
+        expect(consumer.executionContext && typeof consumer.executionContext === "object", `Execution profile ${profile.id} GitHub consumer needs executionContext.`);
+        for (const field of ["workingDirectory", "shell", "continueOnError", "stepIf", "jobIf", "defaultsRun", "matrix", "needs", "env", "runner", "container", "timeoutMinutes"]) {
+          expect(Object.hasOwn(consumer.executionContext, field), `Execution profile ${profile.id} executionContext must explicitly declare ${field}.`);
+        }
+      }
+    }
   }
   for (const command of config.publicCommands || []) {
     expect(typeof command.id === "string" && typeof command.manifest === "string" && typeof command.command === "string", "Each public command needs id, manifest, and command.");

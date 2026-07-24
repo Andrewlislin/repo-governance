@@ -34,6 +34,7 @@ export function dependencyPreparationDefinitionHash(runtime, preparation) {
 export function governanceOnlyExecutionContract() {
   const runtime = {
     id: "system-git",
+    node: { version: "22.x" },
     systemTools: [
       { name: "git", version: "2.x" },
       { name: "sh", version: "posix" },
@@ -70,7 +71,31 @@ export function governanceOnlyExecutionContract() {
         { id: "validate", commands: ["system:git-status"] },
       ],
       dependencyPreparation,
-      consumers: [{ type: "pre-push", revisionSource: "pushed-ref-tip" }],
+      consumers: [
+        { type: "pre-push", revisionSource: "pushed-ref-tip" },
+        {
+          type: "github-actions",
+          workflow: ".github/workflows/repo-governance.yml",
+          job: "validate",
+          verificationStep: "Run governed validation",
+          trigger: "pull_request",
+          revisionSource: "pull-request-head",
+          executionContext: {
+            workingDirectory: ".",
+            shell: null,
+            continueOnError: false,
+            stepIf: null,
+            jobIf: null,
+            defaultsRun: null,
+            matrix: null,
+            needs: [],
+            env: {},
+            runner: "ubuntu-latest",
+            container: null,
+            timeoutMinutes: null,
+          },
+        },
+      ],
     }],
   };
 }

@@ -6,6 +6,7 @@ import { evaluateRg002 } from "./rg002.mjs";
 import { evaluateRg003 } from "./rg003.mjs";
 import { evaluateRg004 } from "./rg004.mjs";
 import { evaluateRg006 } from "./rg006.mjs";
+import { evaluateWorkflowConsumers } from "./workflow-consumers.mjs";
 
 export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const config = readConfig(repo);
@@ -24,7 +25,8 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
   const rg003 = evaluateRg003(repo, config);
   const rg004 = evaluateRg004(repo, config, changed, endpoints.canonicalBaseSha);
   const rg006 = evaluateRg006(repo, config);
-  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings];
+  const workflowConsumers = evaluateWorkflowConsumers(repo, config);
+  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings];
   return {
     schemaVersion: 1,
     mode,
@@ -38,7 +40,7 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
     testCommandGraph: rg002.reachable,
     executionCommandGraphs: rg006.commandGraphs,
     executionContractVerified: rg006.findings.length === 0,
-    workflowConsumersVerified: false,
+    workflowConsumersVerified: workflowConsumers.verified,
     cleanCheckoutVerified: null,
     cleanCheckoutStatus: "not-run",
     semanticCoverageVerified: false,

@@ -1,9 +1,10 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { DIFF_FINGERPRINT_ALGORITHM } from "../src/fingerprint.mjs";
 import { governanceOnlyExecutionContract } from "../src/execution-contract.mjs";
+import { thinWorkflow } from "../src/workflow.mjs";
 
 export function temporaryDirectory(prefix = "repo-governance-test-") {
   return mkdtempSync(join(tmpdir(), prefix));
@@ -43,13 +44,14 @@ export function commitAll(repo, message) {
 }
 
 export function baseConfig(overrides = {}) {
+  const engineCommitSha = overrides.engineCommitSha || "development";
   return {
     schemaVersion: 1,
     executionContractVersion: 1,
     governanceCompleteness: "complete",
     ...governanceOnlyExecutionContract(),
     engineVersion: "0.1.0",
-    engineCommitSha: "development",
+    engineCommitSha,
     diffFingerprintAlgorithm: DIFF_FINGERPRINT_ALGORITHM,
     defaultBranch: "main",
     testCategories: {
@@ -77,4 +79,9 @@ export function baseConfig(overrides = {}) {
 
 export function writeConfig(repo, config) {
   write(join(repo, ".repo-governance.json"), `${JSON.stringify(config, null, 2)}\n`);
+  const consumer = config.executionProfiles?.flatMap((profile) => profile.consumers || []).find((candidate) => candidate.type === "github-actions");
+  if (consumer && !existsSync(join(repo, consumer.workflow))) {
+    const engineCommitSha = /^[0-9a-f]{40}$/.test(config.engineCommitSha) ? config.engineCommitSha : "a".repeat(40);
+    write(join(repo, consumer.workflow), thinWorkflow({ engineVersion: config.engineVersion, engineCommitSha }));
+  }
 }
