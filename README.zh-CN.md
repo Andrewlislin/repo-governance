@@ -46,6 +46,8 @@ repo-governance preflight --json
 
 三层门禁职责彼此独立：Agent preflight 判断工作能否开始；仓库的离线 Git pre-push Hook 防守每次受治理的 push；`prepare-pr` 在 PR 工作前检查干净且已提交的变更。可选的 Codex/Claude Code 生命周期 Hook 只会更早呈现 preflight 决策，属于需要显式安装和信任的加固层，并非完整强制边界。
 
+RG006 校验独立版本化的执行契约：已登记 runtime、精确包管理器身份、依赖准备、生命周期策略、有序 build/codegen/test 阶段与消费者声明。静态检查绝不声称已验证 clean checkout 或语义覆盖。详见 [执行契约与 RG006](docs/execution-contracts.md)。
+
 ## 已有仓库快速接入
 
 先安装经过验证且锁定版本的 release，然后运行一次显式接入命令：

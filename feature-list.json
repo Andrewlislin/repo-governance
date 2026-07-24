@@ -93,7 +93,7 @@
     {
       "id": "v1.3-pr-3-rg006",
       "description": "RG006 runtime registry, dependency preparation definition hashes, and ordered execution graphs",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.3-pr-4-workflow-consumers",

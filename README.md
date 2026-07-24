@@ -46,6 +46,8 @@ An optional `~/.repo-governance-agent.json` can map normalized real path prefixe
 
 The three gates have separate jobs: Agent preflight discovers whether work may start; the repository's offline Git pre-push hook defends every governed push; `prepare-pr` checks the clean committed change set before pull request work. Optional Codex and Claude Code lifecycle Hooks surface the preflight decision earlier, but are explicit trusted guardrails rather than a complete enforcement boundary.
 
+RG006 validates the separately versioned execution contract: registered runtimes, exact package-manager identities, dependency preparation, lifecycle policy, ordered build/codegen/test stages, and declared consumers. Static checks never claim clean-checkout or semantic-coverage evidence. See [Execution contracts and RG006](docs/execution-contracts.md).
+
 ## Quick Start for Existing Repositories
 
 Install a verified, version-pinned release first, then run one explicit adoption command:

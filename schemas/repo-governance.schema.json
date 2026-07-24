@@ -5,6 +5,10 @@
   "type": "object",
   "required": [
     "schemaVersion",
+    "executionContractVersion",
+    "governanceCompleteness",
+    "runtimes",
+    "executionProfiles",
     "engineVersion",
     "engineCommitSha",
     "diffFingerprintAlgorithm",
@@ -23,6 +27,18 @@
   ],
   "properties": {
     "schemaVersion": { "const": 1 },
+    "executionContractVersion": { "const": 1 },
+    "governanceCompleteness": { "const": "complete" },
+    "runtimes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/runtime" }
+    },
+    "executionProfiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/executionProfile" }
+    },
     "preset": {
       "type": "object",
       "required": ["name", "schemaVersion", "sha256"],
@@ -122,5 +138,121 @@
     "workflowAllowedEntries": { "type": "array", "items": { "type": "string" } },
     "waiverApprovers": { "type": "array", "items": { "type": "string" } },
     "managedFiles": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "runtime": {
+      "type": "object",
+      "required": ["id", "systemTools"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "node": {
+          "type": "object",
+          "required": ["version"],
+          "properties": { "version": { "type": "string", "minLength": 1 } }
+        },
+        "python": {
+          "type": "object",
+          "required": ["version"],
+          "properties": { "version": { "type": "string", "minLength": 1 } }
+        },
+        "packageManager": {
+          "type": "object",
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+          }
+        },
+        "systemTools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "anyOf": [{ "required": ["version"] }, { "required": ["sha256"] }],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "version": { "type": "string", "minLength": 1 },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "source": { "enum": ["system", "self-contained"] },
+              "path": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "executionProfile": {
+      "type": "object",
+      "required": ["id", "tier", "runtimeId", "entry", "requiredStages", "dependencyPreparation", "consumers"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "tier": { "enum": ["pr-blocking", "nightly", "manual-smoke"] },
+        "runtimeId": { "type": "string", "minLength": 1 },
+        "entry": {
+          "type": "object",
+          "required": ["publicCommand", "argv"],
+          "properties": {
+            "publicCommand": { "type": "string", "minLength": 1 },
+            "argv": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+          }
+        },
+        "requiredStages": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["id", "commands"],
+            "properties": {
+              "id": { "enum": ["dependencies", "prepare", "validate"] },
+              "commands": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+            }
+          }
+        },
+        "dependencyPreparation": { "$ref": "#/$defs/dependencyPreparation" },
+        "consumers": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "dependencyPreparation": {
+      "type": "object",
+      "required": ["id", "definitionHash", "semantics", "adapter", "workingDirectory", "env", "lifecycleScripts", "hookArgv", "ciArgv", "consumers"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "definitionHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "semantics": { "type": "string", "minLength": 1 },
+        "adapter": { "type": "string", "minLength": 1 },
+        "workingDirectory": { "type": "string", "minLength": 1 },
+        "env": { "type": "object", "additionalProperties": { "type": "string" } },
+        "lifecycleScripts": {
+          "type": "object",
+          "required": ["mode", "allowlist"],
+          "properties": {
+            "mode": { "enum": ["forbid", "allow"] },
+            "allowlist": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["package", "version", "integrity", "stages"],
+                "properties": {
+                  "package": { "type": "string", "minLength": 1 },
+                  "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+                  "integrity": { "type": "string", "minLength": 1 },
+                  "stages": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+                }
+              }
+            }
+          }
+        },
+        "hookArgv": { "type": "array", "items": { "type": "string" } },
+        "ciArgv": { "type": "array", "items": { "type": "string" } },
+        "consumers": {
+          "type": "object",
+          "required": ["contractTests", "docs", "workflows"],
+          "properties": {
+            "contractTests": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "docs": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "workflows": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+          }
+        }
+      }
+    }
   }
 }

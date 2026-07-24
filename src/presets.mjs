@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { GovernanceError } from "./errors.mjs";
 import { commandDefinitionHash } from "./rg004.mjs";
+import { governanceOnlyExecutionContract } from "./execution-contract.mjs";
 import nodeLibrary from "../presets/node-library.json" with { type: "json" };
 import nodeService from "../presets/node-service.json" with { type: "json" };
 import reactWeb from "../presets/react-web.json" with { type: "json" };
@@ -117,6 +118,9 @@ export function materializePreset(repo, loaded, { engineCommitSha }) {
     identity,
     config: {
       preset: identity,
+      executionContractVersion: 1,
+      governanceCompleteness: "complete",
+      ...governanceOnlyExecutionContract(),
       testCategories: preset.testCategories,
       highImpactMappings: preset.highImpactMappings,
       testEntries: preset.testEntries,

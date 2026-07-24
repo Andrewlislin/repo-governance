@@ -25,3 +25,13 @@ test("unknown mapped test category is a configuration error", () => {
     highImpactMappings: [{ businessPaths: ["src/api/**"], requirements: [{ anyOf: ["anything"] }] }],
   }), { enforceEngine: false }), /Unknown test category/);
 });
+
+test("execution contract structure rejects missing versions and embedded runtimes", () => {
+  assert.throws(
+    () => validateConfig(baseConfig({ executionContractVersion: undefined }), { enforceEngine: false }),
+    /executionContractVersion/,
+  );
+  const config = baseConfig();
+  config.executionProfiles[0].runtime = config.runtimes[0];
+  assert.throws(() => validateConfig(config, { enforceEngine: false }), /runtimeId instead of an embedded runtime/);
+});

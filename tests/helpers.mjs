@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { DIFF_FINGERPRINT_ALGORITHM } from "../src/fingerprint.mjs";
+import { governanceOnlyExecutionContract } from "../src/execution-contract.mjs";
 
 export function temporaryDirectory(prefix = "repo-governance-test-") {
   return mkdtempSync(join(tmpdir(), prefix));
@@ -45,6 +46,8 @@ export function baseConfig(overrides = {}) {
   return {
     schemaVersion: 1,
     executionContractVersion: 1,
+    governanceCompleteness: "complete",
+    ...governanceOnlyExecutionContract(),
     engineVersion: "0.1.0",
     engineCommitSha: "development",
     diffFingerprintAlgorithm: DIFF_FINGERPRINT_ALGORITHM,

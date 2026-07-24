@@ -5,6 +5,7 @@ import { applyLocalWaivers } from "./waiver.mjs";
 import { evaluateRg002 } from "./rg002.mjs";
 import { evaluateRg003 } from "./rg003.mjs";
 import { evaluateRg004 } from "./rg004.mjs";
+import { evaluateRg006 } from "./rg006.mjs";
 
 export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const config = readConfig(repo);
@@ -22,7 +23,8 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
   const rg002 = evaluateRg002(repo, config);
   const rg003 = evaluateRg003(repo, config);
   const rg004 = evaluateRg004(repo, config, changed, endpoints.canonicalBaseSha);
-  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings];
+  const rg006 = evaluateRg006(repo, config);
+  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings];
   return {
     schemaVersion: 1,
     mode,
@@ -34,6 +36,12 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
     satisfied: rg001.satisfied,
     acceptedWaivers: waived.accepted,
     testCommandGraph: rg002.reachable,
+    executionCommandGraphs: rg006.commandGraphs,
+    executionContractVerified: rg006.findings.length === 0,
+    workflowConsumersVerified: false,
+    cleanCheckoutVerified: null,
+    cleanCheckoutStatus: "not-run",
+    semanticCoverageVerified: false,
     capabilityBoundary: "RG001 verifies mapped companion categories and change evidence only. It does not prove assertion quality, semantic coverage, or business correctness.",
   };
 }

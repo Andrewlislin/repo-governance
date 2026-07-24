@@ -24,5 +24,7 @@ test("strict configuration is written only after explicit acceptance", () => {
   const result = initializeRepository(repo, { accept: true, defaultBranch: "trunk" });
   assert.equal(result.written, true);
   assert.equal(result.config.defaultBranch, "trunk");
+  assert.equal(result.config.executionContractVersion, 1);
+  assert.equal(result.config.executionProfiles[0].id, "pr-validation");
   assert.deepEqual(result.config.highImpactMappings, []);
 });

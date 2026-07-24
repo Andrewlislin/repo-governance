@@ -6,6 +6,7 @@ import { DIFF_FINGERPRINT_ALGORITHM } from "./fingerprint.mjs";
 import { runtimeIdentity } from "./version.mjs";
 import { commandDefinitionHash } from "./rg004.mjs";
 import { THIN_WORKFLOW_PATH, writeThinWorkflow } from "./workflow.mjs";
+import { governanceOnlyExecutionContract } from "./execution-contract.mjs";
 
 export function detectCandidates(repo) {
   const candidates = { ecosystems: [], manifests: [], commands: [] };
@@ -35,6 +36,9 @@ export function initializeRepository(repo, { accept = false, defaultBranch = "ma
   const identity = runtimeIdentity();
   const config = {
     schemaVersion: 1,
+    executionContractVersion: 1,
+    governanceCompleteness: "complete",
+    ...governanceOnlyExecutionContract(),
     engineVersion: identity.version,
     engineCommitSha: identity.commitSha,
     diffFingerprintAlgorithm: DIFF_FINGERPRINT_ALGORITHM,
