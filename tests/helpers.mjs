@@ -44,6 +44,7 @@ export function commitAll(repo, message) {
 export function baseConfig(overrides = {}) {
   return {
     schemaVersion: 1,
+    executionContractVersion: 1,
     engineVersion: "0.1.0",
     engineCommitSha: "development",
     diffFingerprintAlgorithm: DIFF_FINGERPRINT_ALGORITHM,

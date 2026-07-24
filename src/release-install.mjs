@@ -8,6 +8,7 @@ import { run } from "./process.mjs";
 import { installSkills } from "./skills-install.mjs";
 import { treeDigest } from "./tree-digest.mjs";
 import { assertRuntimeEntriesAvailable, installRuntimeEntries } from "./launcher-install.mjs";
+import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "./protocol.mjs";
 
 function digest(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -49,7 +50,16 @@ function installReleaseDirectory(bundle, { env, verifyAttestation, archivePath =
   const manifestPath = join(bundle, "release-manifest.json");
   if (!existsSync(manifestPath)) throw new GovernanceError("Release manifest is missing.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  if (manifest.repository !== "CoaseEdge/repo-governance" || manifest.buildWorkflow !== ".github/workflows/release.yml" || !/^[0-9a-f]{40}$/.test(manifest.engineCommitSha || "") || manifest.attestationRequired !== true || manifest.platform !== `${process.platform}-${process.arch}`) {
+  if (
+    manifest.repository !== "CoaseEdge/repo-governance"
+    || manifest.buildWorkflow !== ".github/workflows/release.yml"
+    || !/^[0-9a-f]{40}$/.test(manifest.engineCommitSha || "")
+    || manifest.attestationRequired !== true
+    || manifest.platform !== `${process.platform}-${process.arch}`
+    || manifest.prePushProtocolVersion < PRE_PUSH_PROTOCOL_VERSION
+    || !Array.isArray(manifest.supportedExecutionContractVersions)
+    || !SUPPORTED_EXECUTION_CONTRACT_VERSIONS.every((version) => manifest.supportedExecutionContractVersions.includes(version))
+  ) {
     throw new GovernanceError("Release provenance identity is invalid.", { code: "RG_INSTALL_SUPPLY_CHAIN" });
   }
   const cli = join(bundle, manifest.cli.file);
@@ -92,6 +102,8 @@ function installReleaseDirectory(bundle, { env, verifyAttestation, archivePath =
       engineVersion: manifest.engineVersion,
       engineCommitSha: manifest.engineCommitSha,
       sha256: manifest.cli.sha256,
+      prePushProtocolVersion: manifest.prePushProtocolVersion,
+      supportedExecutionContractVersions: manifest.supportedExecutionContractVersions,
       installedAt,
       ...(manifest.agentAssetsSha256 ? { agentAssetsSha256: manifest.agentAssetsSha256 } : {}),
     }, null, 2)}\n`);

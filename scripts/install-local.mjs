@@ -11,6 +11,7 @@ import { installSkills } from "../src/skills-install.mjs";
 import { treeDigest } from "../src/tree-digest.mjs";
 import { stageAgentAssets } from "../src/agent-assets.mjs";
 import { assertRuntimeEntriesAvailable, installRuntimeEntries } from "../src/launcher-install.mjs";
+import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "../src/protocol.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const defaultRoot = resolve(dirname(scriptPath), "..");
@@ -100,6 +101,8 @@ export function installLocalFromSource({
       cli: { file: cliFile, sha256: cliSha256 },
       dispatcher: { file: dispatcherFile, sha256: dispatcherSha256 },
       launcher: { file: dispatcherFile, sha256: dispatcherSha256 },
+      prePushProtocolVersion: PRE_PUSH_PROTOCOL_VERSION,
+      supportedExecutionContractVersions: SUPPORTED_EXECUTION_CONTRACT_VERSIONS,
       skillsSha256,
       playbooksSha256: treeDigest(playbooksSource),
       agentAssetsSha256: treeDigest(agentAssets),
@@ -109,6 +112,8 @@ export function installLocalFromSource({
       engineVersion: version,
       engineCommitSha: commitSha,
       sha256: cliSha256,
+      prePushProtocolVersion: PRE_PUSH_PROTOCOL_VERSION,
+      supportedExecutionContractVersions: SUPPORTED_EXECUTION_CONTRACT_VERSIONS,
       installedAt,
       agentAssetsSha256: engineManifest.agentAssetsSha256,
     }, null, 2)}\n`);

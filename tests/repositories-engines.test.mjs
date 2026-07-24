@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { listEngines, pruneEngines } from "../src/engines.mjs";
 import { writeDefaultEngine } from "../src/launcher-install.mjs";
+import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "../src/protocol.mjs";
 import {
   listRepositories,
   registerRepository,
@@ -34,6 +35,8 @@ function engine(env, sha, version, installedAt, { unknown = false } = {}) {
     engineVersion: version,
     engineCommitSha: sha,
     sha256: createHash("sha256").update(bytes).digest("hex"),
+    prePushProtocolVersion: PRE_PUSH_PROTOCOL_VERSION,
+    supportedExecutionContractVersions: SUPPORTED_EXECUTION_CONTRACT_VERSIONS,
     ...(!unknown ? { installedAt } : {}),
   }, null, 2)}\n`);
   return directory;

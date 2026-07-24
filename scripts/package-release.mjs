@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { join, resolve } from "node:path";
 import { treeDigest } from "../src/tree-digest.mjs";
 import { stageAgentAssets, stageCodexSkills } from "../src/agent-assets.mjs";
+import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "../src/protocol.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const platform = process.env.REPO_GOVERNANCE_PLATFORM || `${process.platform}-${process.arch}`;
@@ -68,6 +69,8 @@ const manifest = {
   cli,
   dispatcher,
   launcher: dispatcher,
+  prePushProtocolVersion: PRE_PUSH_PROTOCOL_VERSION,
+  supportedExecutionContractVersions: SUPPORTED_EXECUTION_CONTRACT_VERSIONS,
   skillsSha256: treeDigest(join(staging, "skills")),
   policyAssetsSha256: treeDigest(join(staging, "policy-assets")),
   agentAssetsSha256: treeDigest(join(staging, "agent-assets")),
