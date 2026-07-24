@@ -41,26 +41,26 @@ test("comment reporter is a separate write-capable reusable that never checks ou
   assert.match(caller, /pull-requests: write/);
 });
 
-test("central CI runs PR governance only on pull request events", () => {
-  const workflow = parse(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8"));
-  assert.equal(workflow.jobs.governance.if, "github.event_name == 'pull_request'");
-  assert.equal(workflow.jobs.test.if, undefined);
+test("central CI keeps release checks separate from the protected PR workflow", () => {
+  const central = parse(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8"));
+  const governance = parse(readFileSync(join(root, ".github", "workflows", "repo-governance.yml"), "utf8"));
+  assert.equal(central.jobs.governance, undefined);
+  assert.ok(central.jobs.test);
+  assert.ok(Object.hasOwn(governance.on, "pull_request"));
 });
 
-test("central CI and package release match the locked engine identity", () => {
+test("protected workflow and package release match the locked engine identity", () => {
   const config = JSON.parse(readFileSync(join(root, ".repo-governance.json"), "utf8"));
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-  const workflow = parse(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8"));
-  const governanceRef = `CoaseEdge/repo-governance/.github/workflows/governance.yml@${config.engineCommitSha}`;
-  const reporterRef = `uses:CoaseEdge/repo-governance/.github/workflows/reporter.yml@${config.engineCommitSha}`;
-  assert.ok(
-    config.engineVersion === packageJson.version
-      || (config.engineVersion === "1.2.0" && packageJson.version === "1.3.0"),
-    "self-governance may lag only during the reviewed v1.3 engine-first migration commit",
-  );
-  assert.equal(workflow.jobs.governance.uses, governanceRef);
-  assert.ok(config.workflowAllowedEntries.includes(`uses:${governanceRef}`));
-  assert.ok(config.workflowAllowedEntries.includes(reporterRef));
+  const contents = readFileSync(join(root, ".github", "workflows", "repo-governance.yml"), "utf8");
+  const workflow = parse(contents);
+  const actionRef = `CoaseEdge/repo-governance/action@${config.engineCommitSha}`;
+  assert.equal(config.engineVersion, packageJson.version);
+  assert.equal(packageJson.scripts["ci:pr"], "npm run build:sea && npm run check");
+  assert.equal(contents, thinWorkflow({ engineVersion: config.engineVersion, engineCommitSha: config.engineCommitSha }));
+  assert.equal(workflow.jobs.validate.steps.at(-1).uses, actionRef);
+  assert.equal(workflow.jobs.validate.steps.at(-1).with["engine-commit-sha"], config.engineCommitSha);
+  assert.ok(config.workflowAllowedEntries.includes(`uses:${actionRef}`));
 });
 
 test("thin caller pins reusable workflow to the same full engine commit", () => {

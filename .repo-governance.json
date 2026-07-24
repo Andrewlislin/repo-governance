@@ -1,7 +1,131 @@
 {
   "schemaVersion": 1,
-  "engineVersion": "1.2.0",
-  "engineCommitSha": "d9a8c181076af0154ce9c1abeb2a9260fa985275",
+  "executionContractVersion": 1,
+  "governanceCompleteness": "complete",
+  "runtimes": [
+    {
+      "id": "node22-npm10",
+      "node": {
+        "version": "22.x"
+      },
+      "packageManager": {
+        "name": "npm",
+        "version": "10.9.2"
+      },
+      "systemTools": [
+        {
+          "name": "git",
+          "version": "2.x"
+        },
+        {
+          "name": "sh",
+          "version": "posix"
+        }
+      ]
+    }
+  ],
+  "executionProfiles": [
+    {
+      "id": "pr-validation",
+      "tier": "pr-blocking",
+      "runtimeId": "node22-npm10",
+      "entry": {
+        "publicCommand": "ci-pr",
+        "argv": [
+          "npm",
+          "run",
+          "ci:pr"
+        ]
+      },
+      "requiredStages": [
+        {
+          "id": "dependencies",
+          "commands": [
+            "dependency:npm-ci"
+          ]
+        },
+        {
+          "id": "prepare",
+          "commands": [
+            "package.json#build:sea"
+          ]
+        },
+        {
+          "id": "validate",
+          "commands": [
+            "package.json#check"
+          ]
+        }
+      ],
+      "dependencyPreparation": {
+        "id": "npm-ci",
+        "definitionHash": "4ab879a2004b62e8f8ac5cddc9f1bbed4d393f2eea6a33c3ce26f920fa4725cb",
+        "semantics": "Install the exact package-lock graph with repository lifecycle scripts disabled.",
+        "adapter": "npm",
+        "workingDirectory": ".",
+        "env": {},
+        "lifecycleScripts": {
+          "mode": "forbid",
+          "allowlist": []
+        },
+        "hookArgv": [
+          "npm",
+          "ci",
+          "--offline",
+          "--ignore-scripts"
+        ],
+        "ciArgv": [
+          "npm",
+          "ci",
+          "--ignore-scripts"
+        ],
+        "consumers": {
+          "contractTests": [
+            "tests/rg006.test.mjs",
+            "tests/verify-execution.test.mjs"
+          ],
+          "docs": [
+            "README.md",
+            "README.zh-CN.md",
+            "docs/execution-contracts.md"
+          ],
+          "workflows": [
+            ".github/workflows/repo-governance.yml"
+          ]
+        }
+      },
+      "consumers": [
+        {
+          "type": "pre-push",
+          "revisionSource": "pushed-ref-tip"
+        },
+        {
+          "type": "github-actions",
+          "workflow": ".github/workflows/repo-governance.yml",
+          "job": "validate",
+          "verificationStep": "Run governed validation",
+          "trigger": "pull_request",
+          "revisionSource": "pull-request-head",
+          "executionContext": {
+            "workingDirectory": ".",
+            "shell": null,
+            "continueOnError": false,
+            "stepIf": null,
+            "jobIf": null,
+            "defaultsRun": null,
+            "matrix": null,
+            "needs": [],
+            "env": {},
+            "runner": "ubuntu-latest",
+            "container": null,
+            "timeoutMinutes": null
+          }
+        }
+      ]
+    }
+  ],
+  "engineVersion": "1.3.0",
+  "engineCommitSha": "ee73a9efb90cfe881bdfef51dd01e7517e70a6a4",
   "diffFingerprintAlgorithm": "git-raw-z-v1-sha256",
   "defaultBranch": "main",
   "testCategories": {
@@ -145,19 +269,41 @@
           ".github/workflows/release.yml"
         ]
       }
+    },
+    {
+      "id": "ci-pr",
+      "manifest": "package.json",
+      "command": "ci:pr",
+      "definitionHash": "ce1c47e3f68a630700cb0fcd8cbaa233c67365453cba92b1d120bdab8e1e99f4",
+      "semantics": "Build both self-contained executables, run static checks, and execute the complete deterministic test suite.",
+      "tier": "pr-blocking",
+      "consumers": {
+        "contractTests": [
+          "tests/workflow-security.test.mjs",
+          "tests/rg006.test.mjs"
+        ],
+        "docs": [
+          "README.md",
+          "README.zh-CN.md",
+          "docs/v1.3-release.md"
+        ],
+        "workflows": [
+          ".github/workflows/repo-governance.yml"
+        ]
+      }
     }
   ],
   "guards": [],
   "policyChecks": [],
   "workflowAllowedEntries": [
-    "uses:CoaseEdge/repo-governance/.github/workflows/governance.yml@d9a8c181076af0154ce9c1abeb2a9260fa985275",
-    "uses:CoaseEdge/repo-governance/.github/workflows/reporter.yml@d9a8c181076af0154ce9c1abeb2a9260fa985275"
+    "uses:CoaseEdge/repo-governance/action@ee73a9efb90cfe881bdfef51dd01e7517e70a6a4"
   ],
   "waiverApprovers": [
     "Andrewlislin"
   ],
   "managedFiles": [
     ".repo-governance.json",
-    ".github/workflows/ci.yml"
+    ".github/workflows/ci.yml",
+    ".github/workflows/repo-governance.yml"
   ]
 }
