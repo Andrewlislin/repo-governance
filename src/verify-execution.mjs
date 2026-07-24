@@ -72,6 +72,7 @@ export function verifyRuntime(repo, runtime, preparation, { env = process.env, p
     }
   }
   for (const tool of runtime.systemTools || []) {
+    if (tool.platforms && !tool.platforms.includes(platform)) continue;
     const path = tool.source === "self-contained" ? join(repo, tool.path) : executableFromPath(tool.name, env, platform);
     if (!path || !existsSync(path)) fail(`Allowlisted runtime tool is unavailable: ${tool.name}.`, "RG_RUNTIME", { tool: tool.name });
     if (tool.source === "self-contained") {

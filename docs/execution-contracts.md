@@ -2,7 +2,7 @@
 
 Configuration schema version 1 uses a separately versioned `executionContractVersion`. Version 1 requires `governanceCompleteness: "complete"`, a runtime registry, and execution profiles that reference registered runtimes by `runtimeId`. Top-level or profile-embedded runtime definitions are rejected.
 
-Each runtime declares its language runtime when applicable, an exact package-manager version, and an explicit `systemTools` allowlist. Every tool needs a version range or SHA-256 digest. A self-contained tool also needs a safe repository-relative tracked path.
+Each runtime declares its language runtime when applicable, an exact package-manager version, and an explicit `systemTools` allowlist. Every tool needs a version range or SHA-256 digest. Platform-specific tools also declare a non-empty `platforms` subset of `darwin`, `linux`, and `win32`; they are verified only on those platforms and never become a fallback elsewhere. A self-contained tool also needs a safe repository-relative tracked path.
 
 Each profile declares:
 

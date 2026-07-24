@@ -47,6 +47,17 @@ export function validateConfig(config, { identity = runtimeIdentity(), enforceEn
   for (const runtime of config.runtimes) {
     expect(runtime && typeof runtime === "object" && typeof runtime.id === "string" && runtime.id.length > 0, "Each runtime needs an id.");
     expect(Array.isArray(runtime.systemTools), `Runtime ${runtime.id} needs a systemTools allowlist.`);
+    for (const tool of runtime.systemTools) {
+      if (tool.platforms !== undefined) {
+        expect(
+          Array.isArray(tool.platforms)
+            && tool.platforms.length > 0
+            && tool.platforms.every((platform) => ["darwin", "linux", "win32"].includes(platform))
+            && new Set(tool.platforms).size === tool.platforms.length,
+          `Runtime ${runtime.id} tool ${tool.name} has invalid platforms.`,
+        );
+      }
+    }
     if (runtime.node !== undefined) expect(typeof runtime.node.version === "string" && runtime.node.version.length > 0, `Runtime ${runtime.id} needs node.version.`);
     if (runtime.python !== undefined) expect(typeof runtime.python.version === "string" && runtime.python.version.length > 0, `Runtime ${runtime.id} needs python.version.`);
     if (runtime.packageManager !== undefined) {

@@ -166,3 +166,21 @@ test("package-manager profiles require an external Node command matching the dec
     (error) => error.code === "RG_RUNTIME" && /Node\.js|node/.test(error.message),
   );
 });
+
+test("runtime verification enforces only system tools declared for the active platform", () => {
+  const repo = temporaryDirectory();
+  const preparation = { workingDirectory: ".", env: {} };
+  const runtime = {
+    id: "platform-tools",
+    systemTools: [{
+      name: "missing-darwin-tool",
+      sha256: "0".repeat(64),
+      platforms: ["darwin"],
+    }],
+  };
+  assert.doesNotThrow(() => verifyRuntime(repo, runtime, preparation, { env: { PATH: "" }, platform: "linux" }));
+  assert.throws(
+    () => verifyRuntime(repo, runtime, preparation, { env: { PATH: "" }, platform: "darwin" }),
+    (error) => error.code === "RG_RUNTIME" && /unavailable/.test(error.message),
+  );
+});
