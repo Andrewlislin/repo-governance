@@ -56,7 +56,7 @@ No Hook path fetches or falls back to a local branch. CI uses the event payload�
 
 The protected Action invokes `verify-execution --profile <id> --ci --event-file <path>`. The command resolves the configured consumer’s exact event and base revisions, requires checked-out `HEAD` to equal that event revision, and rejects any staged, unstaged, untracked, or ignored residue before static validation.
 
-RG001–RG006 run before runtime validation or dependency preparation. After the static check succeeds, the verifier constructs a controlled `PATH` from the declared runtime, allowlisted system tools, exact package manager, and checkout-local dependency binaries. It then runs the profile’s `ciArgv` followed by its public entry. A final proof requires unchanged `HEAD`, unchanged `refs/repo-governance/base`, and no staged or unstaged tracked changes.
+The immutable Action carries its own exact package-manager dependency and places only that engine-local binary ahead of the runner PATH for governed execution. RG001–RG006 run before candidate dependency preparation. After the static check succeeds, the verifier constructs a controlled `PATH` from the declared runtime, allowlisted system tools, exact package manager, and checkout-local dependency binaries. It then runs the profile’s `ciArgv` followed by its public entry. A final proof requires unchanged `HEAD`, unchanged `refs/repo-governance/base`, and no staged or unstaged tracked changes.
 
 The Action writes its JSON report to the runner’s external temporary directory while verification is active, then moves the completed report to the requested path. This prevents report creation itself from contaminating the initial clean-checkout proof.
 

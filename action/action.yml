@@ -36,7 +36,9 @@ runs:
         set -euo pipefail
         REPORT_TMP="$(mktemp "$RUNNER_TEMP/repo-governance-report.XXXXXX")"
         trap 'rm -f "$REPORT_TMP"' EXIT HUP INT TERM
-        REPO_GOVERNANCE_ENGINE_SHA="$RG_ENGINE_SHA" node "$GITHUB_ACTION_PATH/../bin/repo-governance.mjs" verify-execution \
+        PATH="$GITHUB_ACTION_PATH/../node_modules/.bin:$PATH" \
+        REPO_GOVERNANCE_ENGINE_SHA="$RG_ENGINE_SHA" \
+        node "$GITHUB_ACTION_PATH/../bin/repo-governance.mjs" verify-execution \
           --profile "${{ inputs.profile }}" \
           --ci \
           --event-file "${{ inputs.event-file }}" \

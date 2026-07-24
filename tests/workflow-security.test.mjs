@@ -76,9 +76,12 @@ test("thin caller pins reusable workflow to the same full engine commit", () => 
 
 test("composite Action delegates the complete profile and keeps its report outside the checkout during verification", () => {
   const contents = readFileSync(join(root, "action", "action.yml"), "utf8");
+  const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   assert.match(contents, /verify-execution/);
   assert.match(contents, /--profile "\$\{\{ inputs\.profile \}\}"/);
   assert.match(contents, /--event-file "\$\{\{ inputs\.event-file \}\}"/);
+  assert.equal(packageJson.dependencies.npm, packageJson.packageManager.split("@").at(-1));
+  assert.match(contents, /PATH="\$GITHUB_ACTION_PATH\/\.\.\/node_modules\/\.bin:\$PATH"/);
   assert.match(contents, /mktemp "\$RUNNER_TEMP\//);
   assert.match(contents, /> "\$REPORT_TMP"/);
   assert.match(contents, /mv "\$REPORT_TMP" "\$RG_REPORT"/);
