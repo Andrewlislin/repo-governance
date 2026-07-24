@@ -142,10 +142,14 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
 test("v1.3.0 release inputs contain the execution protocol, dynamic Action, and Agent policy assets", () => {
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const packageLock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
+  const buildSea = readFileSync(join(root, "scripts", "build-sea.mjs"), "utf8");
   assert.equal(packageJson.version, "1.3.0");
   assert.equal(packageJson.packageManager, "npm@10.9.2");
   assert.equal(packageLock.version, packageJson.version);
   assert.equal(packageLock.packages[""].version, packageJson.version);
+  assert.match(buildSea, /execFileSync\("xattr", \["-c", executable\]\)/);
+  assert.match(buildSea, /XDG_DATA_HOME: join\(cwd, "data"\)/);
+  assert.match(buildSea, /LOCALAPPDATA: join\(cwd, "data"\)/);
 
   for (const path of [
     "schemas/agent-policy.schema.json",
