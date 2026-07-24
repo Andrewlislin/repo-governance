@@ -20,6 +20,20 @@
         {
           "name": "sh",
           "version": "posix"
+        },
+        {
+          "name": "xattr",
+          "sha256": "3cc7308e9dfd687b0b7f4778a6101633aa9dce5ccdd012cf17cd858848295162",
+          "platforms": [
+            "darwin"
+          ]
+        },
+        {
+          "name": "codesign",
+          "sha256": "214d455584d19abc0d74d02b9cbc7d3da6bdcb0596c235e6156dd9ed2f4e1ba7",
+          "platforms": [
+            "darwin"
+          ]
         }
       ]
     }
@@ -59,7 +73,7 @@
       ],
       "dependencyPreparation": {
         "id": "npm-ci",
-        "definitionHash": "4ab879a2004b62e8f8ac5cddc9f1bbed4d393f2eea6a33c3ce26f920fa4725cb",
+        "definitionHash": "432635ab44889e2672be9150bd4f3cc1ab417466eb69d91b6b08d66418b7aec2",
         "semantics": "Install the exact package-lock graph with repository lifecycle scripts disabled.",
         "adapter": "npm",
         "workingDirectory": ".",
@@ -125,7 +139,7 @@
     }
   ],
   "engineVersion": "1.3.0",
-  "engineCommitSha": "ee73a9efb90cfe881bdfef51dd01e7517e70a6a4",
+  "engineCommitSha": "a6e385d68001db9438fcc943ec0b0831dbf07ac5",
   "diffFingerprintAlgorithm": "git-raw-z-v1-sha256",
   "defaultBranch": "main",
   "testCategories": {
@@ -296,7 +310,7 @@
   "guards": [],
   "policyChecks": [],
   "workflowAllowedEntries": [
-    "uses:CoaseEdge/repo-governance/action@ee73a9efb90cfe881bdfef51dd01e7517e70a6a4"
+    "uses:CoaseEdge/repo-governance/action@a6e385d68001db9438fcc943ec0b0831dbf07ac5"
   ],
   "waiverApprovers": [
     "Andrewlislin"

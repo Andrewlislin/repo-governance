@@ -27,8 +27,8 @@ jobs:
           node-version: 22
       - name: Run governed validation
         id: governance
-        uses: CoaseEdge/repo-governance/action@ee73a9efb90cfe881bdfef51dd01e7517e70a6a4
+        uses: CoaseEdge/repo-governance/action@a6e385d68001db9438fcc943ec0b0831dbf07ac5
         with:
           profile: pr-validation
           event-file: ${{ github.event_path }}
-          engine-commit-sha: ee73a9efb90cfe881bdfef51dd01e7517e70a6a4
+          engine-commit-sha: a6e385d68001db9438fcc943ec0b0831dbf07ac5
