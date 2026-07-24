@@ -50,6 +50,8 @@ RG006 validates the separately versioned execution contract: registered runtimes
 
 Each protected workflow is linked only through its profile consumer and checks out the declared event revision with `clean: true`. The job may set up the declared runtime and restore an external package-download cache, but dependency installation, build, code generation, and tests belong to governed execution rather than independent workflow steps.
 
+Pre-push canonical bases come only from the named push remote and its remote-tracking default branch; the Hook never fetches or substitutes a local branch. CI uses the exact event head/base SHAs and writes the base to `refs/repo-governance/base`.
+
 ## Quick Start for Existing Repositories
 
 Install a verified, version-pinned release first, then run one explicit adoption command:

@@ -39,3 +39,15 @@ repo-governance:dependency-preparation:v1\0
 followed immediately by the canonical JSON bytes. CLI validation, tests, documentation examples, and execution adapters call the same implementation.
 
 Static `check --json` reports whether the execution contract passed RG006, but reports `cleanCheckoutVerified: null`, `cleanCheckoutStatus: "not-run"`, and `semanticCoverageVerified: false`. Only isolated dynamic execution may claim a clean checkout.
+
+## Revision and canonical base inputs
+
+Pre-push parses every four-field stdin record and peels each pushed object to a commit. Deletions are skipped. Identical pushed commit/base pairs are verified once, while annotated tags retain both the tag object SHA and peeled commit SHA in their report.
+
+The base comes only from the actual push remote:
+
+- a default-branch update uses the Hook stdin remote SHA when that object is available;
+- other refs, and a default-branch creation without an available remote SHA, use `refs/remotes/<remote>/<defaultBranch>`;
+- an unknown remote or missing remote-tracking base fails offline and tells the user to run `git fetch <remote> <defaultBranch>`.
+
+No Hook path fetches or falls back to a local branch. CI uses the event payload’s exact pull-request base SHA or push `before` SHA and binds the event revision to `pull-request-head`, `pull-request-merge`, or `push-event-sha`. The chosen base is written to `refs/repo-governance/base` before the explicit static check.

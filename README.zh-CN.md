@@ -50,6 +50,8 @@ RG006 校验独立版本化的执行契约：已登记 runtime、精确包管理
 
 每个受保护 workflow 只通过 profile consumer 关联，并用 `clean: true` checkout 事件声明的精确 revision。job 可以设置已声明 runtime，并恢复 workspace 外的包下载缓存；依赖安装、build、codegen 与测试必须由受治理执行统一完成，不能成为独立 workflow 步骤。
 
+Pre-push canonical base 只来自命名 push remote 及其 remote-tracking 默认分支；Hook 绝不 fetch，也不替换为本地 branch。CI 使用事件中的精确 head/base SHA，并把 base 写入 `refs/repo-governance/base`。
+
 ## 已有仓库快速接入
 
 先安装经过验证且锁定版本的 release，然后运行一次显式接入命令：

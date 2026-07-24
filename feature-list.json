@@ -103,7 +103,7 @@
     {
       "id": "v1.3-pr-5-canonical-base",
       "description": "Remote-aware canonical base resolution for pre-push and CI event revisions",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.3-pr-6-verify-execution",
