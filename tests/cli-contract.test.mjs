@@ -125,6 +125,33 @@ test("prepare-pr CLI emits the projected check result without remote writes", as
   assert.equal(report.sourceCheckResult.mode, "standard");
 });
 
+test("verify-execution CLI forwards the exact CI profile and event file", async () => {
+  const repo = repository();
+  const eventFile = join(temporaryDirectory("repo-governance-cli-event-"), "event.json");
+  write(eventFile, "{}");
+  const stdout = sink();
+  let received;
+  const code = await main([
+    "verify-execution",
+    "--profile", "pr-validation",
+    "--ci",
+    "--event-file", eventFile,
+    "--json",
+  ], {
+    cwd: repo,
+    stdout: stdout.stream,
+    verifyCiExecution(_repo, options) {
+      received = { repo: _repo, ...options };
+      return { ok: true };
+    },
+  });
+  assert.equal(code, 0);
+  assert.equal(received.repo, realpathSync(repo));
+  assert.equal(received.profileId, "pr-validation");
+  assert.equal(received.eventFile, eventFile);
+  assert.deepEqual(JSON.parse(stdout.value()), { ok: true });
+});
+
 test("preflight CLI treats non-Git state as a normal JSON classification", async () => {
   const cwd = temporaryDirectory("repo-governance-cli-preflight-");
   const env = { ...process.env, HOME: cwd, XDG_DATA_HOME: join(cwd, "data") };

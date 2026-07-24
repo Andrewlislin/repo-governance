@@ -108,7 +108,7 @@
     {
       "id": "v1.3-pr-6-verify-execution",
       "description": "Isolated execution verification for CI and candidate commits with clean-checkout evidence",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.3-pr-7-revision-bound-pre-push",

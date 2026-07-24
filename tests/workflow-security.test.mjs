@@ -65,8 +65,19 @@ test("thin caller pins reusable workflow to the same full engine commit", () => 
   assert.match(contents, new RegExp(`repo-governance/action@${sha}`));
   assert.match(contents, /clean: true/);
   assert.match(contents, /github\.event\.pull_request\.head\.sha/);
+  assert.match(contents, new RegExp(`engine-commit-sha: ${sha}`));
   assert.match(contents, /pull_request:/);
   assert.equal(thinWorkflow({ engineVersion: "dev", engineCommitSha: "development" }), null);
+});
+
+test("composite Action delegates the complete profile and keeps its report outside the checkout during verification", () => {
+  const contents = readFileSync(join(root, "action", "action.yml"), "utf8");
+  assert.match(contents, /verify-execution/);
+  assert.match(contents, /--profile "\$\{\{ inputs\.profile \}\}"/);
+  assert.match(contents, /--event-file "\$\{\{ inputs\.event-file \}\}"/);
+  assert.match(contents, /mktemp "\$RUNNER_TEMP\//);
+  assert.match(contents, /> "\$REPORT_TMP"/);
+  assert.match(contents, /mv "\$REPORT_TMP" "\$RG_REPORT"/);
 });
 
 test("release requires both checksum metadata and GitHub artifact attestation", () => {

@@ -21,6 +21,7 @@ import { preflightRepository } from "./preflight.mjs";
 import { listRepositories, registerRepository, unregisterRepository } from "./repositories.mjs";
 import { listEngines, pruneEngines } from "./engines.mjs";
 import { checkVersion } from "./release-catalog.mjs";
+import { verifyCiExecution } from "./verify-execution.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -54,6 +55,7 @@ function help() {
   preflight [--json]
   prepare-pr [--base <ref>] [--json]
   check [--base <ref>] [--head <ref>] [--json]
+  verify-execution --profile <id> --ci --event-file <json> [--json]
   waiver create --name <name> --paths <a,b> --reason <text> --expires <ISO> [--base <ref>]
   hooks install --dispatcher <verified-file> [--compose]
   hooks doctor
@@ -231,6 +233,18 @@ export async function main(argv, context = {}) {
       const result = checkRepository(repo, { base: parsed.flags.base, head: parsed.flags.head });
       emit(result, json, result.ok ? stdout : stderr);
       return result.exitCode;
+    }
+    if (command === "verify-execution") {
+      if (!parsed.flags.profile || !parsed.flags.ci || !parsed.flags["event-file"]) {
+        throw new GovernanceError("verify-execution requires --profile, --ci, and --event-file.", { code: "RG_INVOCATION" });
+      }
+      const result = (context.verifyCiExecution || verifyCiExecution)(repo, {
+        profileId: parsed.flags.profile,
+        eventFile: parsed.flags["event-file"],
+        env,
+      });
+      emit(result, json, stdout);
+      return 0;
     }
     if (command === "waiver" && subcommand === "create") {
       const required = ["name", "paths", "reason", "expires"];
