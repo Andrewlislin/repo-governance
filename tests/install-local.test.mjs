@@ -6,6 +6,7 @@ import test from "node:test";
 import { installLocalFromSource } from "../scripts/install-local.mjs";
 import { treeDigest } from "../src/tree-digest.mjs";
 import { MANAGED_ENTRY_MARKER } from "../src/launcher-install.mjs";
+import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "../src/protocol.mjs";
 import { temporaryDirectory, write } from "./helpers.mjs";
 
 function digest(bytes) {
@@ -85,6 +86,8 @@ test("local source install copies CLI, dispatcher, manifests, versioned Agent as
   assert.equal(manifest.cli.sha256, digest("cli"));
   assert.equal(manifest.dispatcher.sha256, digest("dispatcher"));
   assert.equal(manifest.launcher.sha256, digest("dispatcher"));
+  assert.equal(manifest.prePushProtocolVersion, PRE_PUSH_PROTOCOL_VERSION);
+  assert.deepEqual(manifest.supportedExecutionContractVersions, SUPPORTED_EXECUTION_CONTRACT_VERSIONS);
   assert.equal(manifest.skillsSha256, treeDigest(join(root, "adapters", "codex", "skills")));
   assert.equal(manifest.playbooksSha256, treeDigest(join(root, "playbooks")));
   assert.equal(manifest.agentAssetsSha256, treeDigest(result.agentAssets));
@@ -96,6 +99,8 @@ test("local source install copies CLI, dispatcher, manifests, versioned Agent as
     engineVersion: "1.0.0",
     engineCommitSha: commitSha,
     sha256: digest("cli"),
+    prePushProtocolVersion: PRE_PUSH_PROTOCOL_VERSION,
+    supportedExecutionContractVersions: SUPPORTED_EXECUTION_CONTRACT_VERSIONS,
     agentAssetsSha256: manifest.agentAssetsSha256,
   });
   assert.match(readFileSync(join(engineDirectory, "SHA256SUMS"), "utf8"), new RegExp(`${digest("cli")}  ${cliName}`));

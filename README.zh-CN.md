@@ -30,7 +30,7 @@ npm run install:local
 
 该命令会构建本地 engine 和自包含的版本感知 launcher，安装到标准 repo-governance 数据目录，并在 `~/.local/bin/repo-governance`（Windows 为用户级 bin 目录）创建托管的裸命令入口。安装器绝不修改 shell profile。若该 bin 目录不在当前 `PATH` 中，安装结果会返回 `pathConfigured:false` 与可复制的 `actionRequired` 命令，并明确说明“入口已创建，但当前 shell 尚不能使用裸命令”。
 
-安装的 pre-push hook 保持精简且离线运行。它调用平台数据目录中的稳定 launcher；launcher 从 `.repo-governance.json` 读取 `engineCommitSha`，验证锁定的可执行文件，然后运行 `repo-governance check`。同一个裸命令会把不同受管仓库路由到各自锁定的 engine；全局命令和无配置仓库的接入命令使用原子维护的默认 engine 指针。仓库配置损坏时直接失败，绝不降级到默认 engine。
+安装的 pre-push hook 保持精简且离线运行。wrapper 会安全捕获 stdin，并把已有 Hook 保存为经过摘要校验的 sidecar；稳定 launcher 针对每个拟推送 tip，从候选 commit 读取精确 engine identity 和 `executionContractVersion`，验证锁定可执行文件、`prePushProtocolVersion` 与支持的执行契约版本，再进入隔离的 `repo-governance verify-execution --pre-push` 路径。它不会降级到可变工作区配置、默认 engine 或旧版 `check`。协议字段缺失、版本不兼容、候选配置损坏、engine 缺失或摘要错误都会阻断执行。
 
 ## Agent 工作前预检与自动接入策略
 
@@ -45,6 +45,14 @@ repo-governance preflight --json
 可选的 `~/.repo-governance-agent.json` 可以把规范化真实路径前缀映射到显式 Preset。匹配确定性地选择最长前缀，同优先级冲突直接阻断；`autoBootstrap` 只能在已经命中 Preset 时免去 `bootstrap` 的重复确认。它绝不授权猜测 Preset、执行 `github enforce --confirm`、创建 PR、发表评论、修改 ruleset 或其他远端写入。Schema、生命周期和完整状态示例见 [Agent 自动接入](docs/agent-auto-adoption.md)。
 
 三层门禁职责彼此独立：Agent preflight 判断工作能否开始；仓库的离线 Git pre-push Hook 防守每次受治理的 push；`prepare-pr` 在 PR 工作前检查干净且已提交的变更。可选的 Codex/Claude Code 生命周期 Hook 只会更早呈现 preflight 决策，属于需要显式安装和信任的加固层，并非完整强制边界。
+
+RG006 校验独立版本化的执行契约：已登记 runtime、精确包管理器身份、依赖准备、生命周期策略、有序 build/codegen/test 阶段与消费者声明。静态检查绝不声称已验证 clean checkout 或语义覆盖。详见 [执行契约与 RG006](docs/execution-contracts.md)。
+
+v1.3 的迁移与发布边界见 [v1.3 release](docs/v1.3-release.md)。
+
+每个受保护 workflow 只通过 profile consumer 关联，并用 `clean: true` checkout 事件声明的精确 revision。job 可以设置已声明 runtime，并恢复 workspace 外的包下载缓存；依赖安装、build、codegen 与测试必须由受治理执行统一完成，不能成为独立 workflow 步骤。
+
+Pre-push canonical base 只来自命名 push remote 及其 remote-tracking 默认分支；Hook 绝不 fetch，也不替换为本地 branch。每个唯一 tip/base 组合都在 detached 本地 clone 中执行，不能复用源工作区依赖或 ignored 产物。CI 使用事件中的精确 head/base SHA，并把 base 写入 `refs/repo-governance/base`。
 
 ## 已有仓库快速接入
 

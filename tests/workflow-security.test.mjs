@@ -41,30 +41,50 @@ test("comment reporter is a separate write-capable reusable that never checks ou
   assert.match(caller, /pull-requests: write/);
 });
 
-test("central CI runs PR governance only on pull request events", () => {
-  const workflow = parse(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8"));
-  assert.equal(workflow.jobs.governance.if, "github.event_name == 'pull_request'");
-  assert.equal(workflow.jobs.test.if, undefined);
+test("central CI keeps release checks separate from the protected PR workflow", () => {
+  const central = parse(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8"));
+  const governance = parse(readFileSync(join(root, ".github", "workflows", "repo-governance.yml"), "utf8"));
+  assert.equal(central.jobs.governance, undefined);
+  assert.ok(central.jobs.test);
+  assert.ok(Object.hasOwn(governance.on, "pull_request"));
 });
 
-test("central CI and package release match the locked engine identity", () => {
+test("protected workflow and package release match the locked engine identity", () => {
   const config = JSON.parse(readFileSync(join(root, ".repo-governance.json"), "utf8"));
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-  const workflow = parse(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8"));
-  const governanceRef = `CoaseEdge/repo-governance/.github/workflows/governance.yml@${config.engineCommitSha}`;
-  const reporterRef = `uses:CoaseEdge/repo-governance/.github/workflows/reporter.yml@${config.engineCommitSha}`;
+  const contents = readFileSync(join(root, ".github", "workflows", "repo-governance.yml"), "utf8");
+  const workflow = parse(contents);
+  const actionRef = `CoaseEdge/repo-governance/action@${config.engineCommitSha}`;
   assert.equal(config.engineVersion, packageJson.version);
-  assert.equal(workflow.jobs.governance.uses, governanceRef);
-  assert.ok(config.workflowAllowedEntries.includes(`uses:${governanceRef}`));
-  assert.ok(config.workflowAllowedEntries.includes(reporterRef));
+  assert.equal(packageJson.scripts["ci:pr"], "npm run build:sea && npm run check");
+  assert.equal(contents, thinWorkflow({ engineVersion: config.engineVersion, engineCommitSha: config.engineCommitSha }));
+  assert.equal(workflow.jobs.validate.steps.at(-1).uses, actionRef);
+  assert.equal(workflow.jobs.validate.steps.at(-1).with["engine-commit-sha"], config.engineCommitSha);
+  assert.ok(config.workflowAllowedEntries.includes(`uses:${actionRef}`));
 });
 
 test("thin caller pins reusable workflow to the same full engine commit", () => {
   const sha = "a".repeat(40);
   const contents = thinWorkflow({ engineVersion: "1.0.0", engineCommitSha: sha });
-  assert.match(contents, new RegExp(`governance\\.yml@${sha}`));
+  assert.match(contents, new RegExp(`repo-governance/action@${sha}`));
+  assert.match(contents, /clean: true/);
+  assert.match(contents, /github\.event\.pull_request\.head\.sha/);
+  assert.match(contents, new RegExp(`engine-commit-sha: ${sha}`));
   assert.match(contents, /pull_request:/);
   assert.equal(thinWorkflow({ engineVersion: "dev", engineCommitSha: "development" }), null);
+});
+
+test("composite Action delegates the complete profile and keeps its report outside the checkout during verification", () => {
+  const contents = readFileSync(join(root, "action", "action.yml"), "utf8");
+  const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  assert.match(contents, /verify-execution/);
+  assert.match(contents, /--profile "\$\{\{ inputs\.profile \}\}"/);
+  assert.match(contents, /--event-file "\$\{\{ inputs\.event-file \}\}"/);
+  assert.equal(packageJson.dependencies.npm, packageJson.packageManager.split("@").at(-1));
+  assert.match(contents, /PATH="\$GITHUB_ACTION_PATH\/\.\.\/node_modules\/\.bin:\$PATH"/);
+  assert.match(contents, /mktemp "\$RUNNER_TEMP\//);
+  assert.match(contents, /> "\$REPORT_TMP"/);
+  assert.match(contents, /mv "\$REPORT_TMP" "\$RG_REPORT"/);
 });
 
 test("release requires both checksum metadata and GitHub artifact attestation", () => {
@@ -122,12 +142,17 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   }
 });
 
-test("v1.2.0 release inputs contain every Agent gate and policy asset", () => {
+test("v1.3.0 release inputs contain the execution protocol, dynamic Action, and Agent policy assets", () => {
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const packageLock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
-  assert.equal(packageJson.version, "1.2.0");
+  const buildSea = readFileSync(join(root, "scripts", "build-sea.mjs"), "utf8");
+  assert.equal(packageJson.version, "1.3.0");
+  assert.equal(packageJson.packageManager, "npm@10.9.2");
   assert.equal(packageLock.version, packageJson.version);
   assert.equal(packageLock.packages[""].version, packageJson.version);
+  assert.match(buildSea, /execFileSync\("xattr", \["-c", executable\]\)/);
+  assert.match(buildSea, /XDG_DATA_HOME: join\(cwd, "data"\)/);
+  assert.match(buildSea, /LOCALAPPDATA: join\(cwd, "data"\)/);
 
   for (const path of [
     "schemas/agent-policy.schema.json",
@@ -139,5 +164,8 @@ test("v1.2.0 release inputs contain every Agent gate and policy asset", () => {
     "adapters/claude-code/hooks/settings.example.json",
     "adapters/claude-code/hooks/pre-commit.example",
     "adapters/claude-code/hooks/repo-governance-agent-gate.mjs",
+    "action/action.yml",
+    "schemas/repo-governance.schema.json",
+    "docs/execution-contracts.md",
   ]) assert.equal(readFileSync(join(root, path), "utf8").length > 0, true, `missing release input ${path}`);
 });

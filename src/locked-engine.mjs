@@ -1,11 +1,17 @@
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { GovernanceError } from "./errors.mjs";
 import { governanceDataRoot } from "./paths.mjs";
 import { runtimeIdentity } from "./version.mjs";
+import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "./protocol.mjs";
 
 function publicError(code, message, details = {}) {
   return { code, message, details };
+}
+
+function digest(path) {
+  return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
 export function lockedRuntimePaths(identity, env = process.env, platform = process.platform) {
@@ -75,6 +81,11 @@ export function inspectLockedRuntime(configuredIdentity, {
   if (
     manifest.engineCommitSha !== runningIdentity.commitSha
     || manifest.engineVersion !== runningIdentity.version
+    || !/^[0-9a-f]{64}$/.test(manifest.sha256 || "")
+    || digest(paths.executable) !== manifest.sha256
+    || manifest.prePushProtocolVersion < PRE_PUSH_PROTOCOL_VERSION
+    || !Array.isArray(manifest.supportedExecutionContractVersions)
+    || !SUPPORTED_EXECUTION_CONTRACT_VERSIONS.every((version) => manifest.supportedExecutionContractVersions.includes(version))
   ) {
     return {
       aligned: false,

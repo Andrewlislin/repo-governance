@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { realpathSync, rmSync } from "node:fs";
+import { readFileSync, realpathSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { main } from "../src/cli.mjs";
@@ -123,6 +123,73 @@ test("prepare-pr CLI emits the projected check result without remote writes", as
   assert.equal(report.command, "prepare-pr");
   assert.equal(report.summary.status, "ready");
   assert.equal(report.sourceCheckResult.mode, "standard");
+});
+
+test("verify-execution CLI forwards the exact CI profile and event file", async () => {
+  const repo = repository();
+  const eventFile = join(temporaryDirectory("repo-governance-cli-event-"), "event.json");
+  write(eventFile, "{}");
+  const stdout = sink();
+  let received;
+  const code = await main([
+    "verify-execution",
+    "--profile", "pr-validation",
+    "--ci",
+    "--event-file", eventFile,
+    "--json",
+  ], {
+    cwd: repo,
+    stdout: stdout.stream,
+    verifyCiExecution(_repo, options) {
+      received = { repo: _repo, ...options };
+      return { ok: true };
+    },
+  });
+  assert.equal(code, 0);
+  assert.equal(received.repo, realpathSync(repo));
+  assert.equal(received.profileId, "pr-validation");
+  assert.equal(received.eventFile, eventFile);
+  assert.deepEqual(JSON.parse(stdout.value()), { ok: true });
+});
+
+test("verify-execution CLI forwards pre-push remote context and captured stdin", async () => {
+  const repo = repository();
+  const stdout = sink();
+  let received;
+  const code = await main([
+    "verify-execution",
+    "--pre-push=true",
+    "--remote", "origin",
+    "--remote-url", "example",
+    "--json",
+  ], {
+    cwd: repo,
+    stdout: stdout.stream,
+    prePushInput: "record\n",
+    verifyPrePushExecution(_repo, options) {
+      received = { repo: _repo, ...options };
+      return { mode: "pre-push" };
+    },
+  });
+  assert.equal(code, 0);
+  assert.equal(received.repo, realpathSync(repo));
+  assert.equal(received.remote, "origin");
+  assert.equal(received.remoteUrl, "example");
+  assert.equal(received.input, "record\n");
+  assert.deepEqual(JSON.parse(stdout.value()), { mode: "pre-push" });
+});
+
+test("hooks connect installs the strict repository wrapper through the verified dispatcher", async () => {
+  const repo = repository();
+  const home = temporaryDirectory("repo-governance-cli-hooks-");
+  const env = { ...process.env, HOME: home, XDG_DATA_HOME: join(home, "data") };
+  write(join(env.XDG_DATA_HOME, "repo-governance", "dispatcher"), "#!/bin/sh\nexit 0\n", 0o755);
+  const stdout = sink();
+  const code = await main(["hooks", "connect", "--json"], { cwd: repo, env, stdout: stdout.stream });
+  assert.equal(code, 0);
+  const report = JSON.parse(stdout.value());
+  assert.equal(report.changed, true);
+  assert.match(readFileSync(report.path, "utf8"), /umask 077/);
 });
 
 test("preflight CLI treats non-Git state as a normal JSON classification", async () => {

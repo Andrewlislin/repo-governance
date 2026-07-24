@@ -39,7 +39,13 @@ function smokeTestExecutable(name, executable) {
   }
   const cwd = mkdtempSync(join(tmpdir(), "repo-governance-sea-smoke-"));
   try {
-    const result = spawnSync(executable, [], { cwd, encoding: "utf8" });
+    const env = {
+      ...process.env,
+      HOME: cwd,
+      XDG_DATA_HOME: join(cwd, "data"),
+      LOCALAPPDATA: join(cwd, "data"),
+    };
+    const result = spawnSync(executable, [], { cwd, env, encoding: "utf8" });
     if (result.status !== 2 || !result.stderr.includes("No default engine is configured")) throw new Error("SEA launcher smoke test did not execute the expected offline no-default-engine path.");
   } finally {
     rmSync(cwd, { recursive: true, force: true });
@@ -72,7 +78,10 @@ for (const target of [
   writeFileSync(seaConfig, `${JSON.stringify({ main: bundle, output: blob, disableExperimentalSEAWarning: true, useSnapshot: false, useCodeCache: false }, null, 2)}\n`);
   execFileSync(process.execPath, ["--experimental-sea-config", seaConfig], { stdio: "inherit" });
   cpSync(process.execPath, executable);
-  if (process.platform === "darwin") execFileSync("codesign", ["--remove-signature", executable]);
+  if (process.platform === "darwin") {
+    execFileSync("xattr", ["-c", executable]);
+    execFileSync("codesign", ["--remove-signature", executable]);
+  }
   const postject = join(root, "node_modules", ".bin", process.platform === "win32" ? "postject.cmd" : "postject");
   const postjectArgs = [executable, "NODE_SEA_BLOB", blob, "--sentinel-fuse", "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"];
   if (process.platform === "darwin") postjectArgs.push("--macho-segment-name", "NODE_SEA");

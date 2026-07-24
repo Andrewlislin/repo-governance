@@ -79,6 +79,46 @@
       "id": "v1.2-pr-3-version-advisory",
       "description": "Verified release catalog, explicit version check, cached upgrade advisory, and read-only preflight reporting",
       "passes": true
+    },
+    {
+      "id": "v1.3-pr-1-execution-contract-scaffold",
+      "description": "Version 1 execution contract feature ledger and implementation boundaries",
+      "passes": true
+    },
+    {
+      "id": "v1.3-pr-2-engine-protocol",
+      "description": "Versioned engine manifests, stable dispatcher protocol checks, and downgrade prevention",
+      "passes": true
+    },
+    {
+      "id": "v1.3-pr-3-rg006",
+      "description": "RG006 runtime registry, dependency preparation definition hashes, and ordered execution graphs",
+      "passes": true
+    },
+    {
+      "id": "v1.3-pr-4-workflow-consumers",
+      "description": "Workflow consumer, revision source, checkout, cache, action, and execution-context verification",
+      "passes": true
+    },
+    {
+      "id": "v1.3-pr-5-canonical-base",
+      "description": "Remote-aware canonical base resolution for pre-push and CI event revisions",
+      "passes": true
+    },
+    {
+      "id": "v1.3-pr-6-verify-execution",
+      "description": "Isolated execution verification for CI and candidate commits with clean-checkout evidence",
+      "passes": true
+    },
+    {
+      "id": "v1.3-pr-7-revision-bound-pre-push",
+      "description": "Wrapper and sidecar preservation with per-tip isolated pre-push verification",
+      "passes": true
+    },
+    {
+      "id": "v1.3-pr-8-release",
+      "description": "Preset migration, required checks, release metadata, bilingual documentation, and end-to-end acceptance",
+      "passes": true
     }
   ]
 }

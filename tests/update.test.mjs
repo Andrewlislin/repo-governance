@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { controlledUpdate } from "../src/update.mjs";
+import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "../src/protocol.mjs";
 import { baseConfig, commitAll, initGitRepo, temporaryDirectory, write, writeConfig } from "./helpers.mjs";
 
 function envForTest() {
@@ -24,6 +25,8 @@ function createBundle(config, { badChecksum = false } = {}) {
     engineVersion: next.engineVersion,
     engineCommitSha: next.engineCommitSha,
     diffFingerprintAlgorithm: next.diffFingerprintAlgorithm,
+    prePushProtocolVersion: PRE_PUSH_PROTOCOL_VERSION,
+    supportedExecutionContractVersions: SUPPORTED_EXECUTION_CONTRACT_VERSIONS,
     managedFiles: [".repo-governance.json"],
     engine: {
       file: "repo-governance",
@@ -87,6 +90,8 @@ test("successful update rereads consistent version fields", () => {
   assert.ok(existsSync(result.commandPath));
   const engineManifest = JSON.parse(readFileSync(join(env.XDG_DATA_HOME, "repo-governance", "engines", next.engineCommitSha, "engine-manifest.json"), "utf8"));
   assert.ok(Number.isFinite(Date.parse(engineManifest.installedAt)));
+  assert.equal(engineManifest.prePushProtocolVersion, PRE_PUSH_PROTOCOL_VERSION);
+  assert.deepEqual(engineManifest.supportedExecutionContractVersions, SUPPORTED_EXECUTION_CONTRACT_VERSIONS);
 });
 
 test("launcher replacement failure restores repository, engine, command entry, and default pointer", () => {

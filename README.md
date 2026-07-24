@@ -30,7 +30,7 @@ npm run install:local
 
 This builds the local engine and self-contained version-aware launcher, installs them into the standard repo-governance data directory, and creates a managed bare-command entry at `~/.local/bin/repo-governance` (or the user-level Windows bin directory). The installer never edits a shell profile. When that bin directory is absent from the current `PATH`, installation reports `pathConfigured: false`, an `actionRequired` command that can be copied, and explicitly states that the entry exists but the bare command is not yet available in the current shell.
 
-The installed pre-push hook is thin and offline. It invokes the stable launcher in the platform data directory; the launcher reads `engineCommitSha` from `.repo-governance.json`, verifies the locked executable, and then runs `repo-governance check`. The same bare command routes each managed repository to its locked engine; global commands and adoption commands used outside a configured repository use the atomically maintained default-engine pointer. A damaged repository configuration fails without falling back. Missing or corrupt engines fail with an explicit update instruction.
+The installed pre-push hook is thin and offline. Its wrapper securely captures stdin, preserves an existing Hook as a verified sidecar, and invokes the stable launcher in the platform data directory. For every pushed tip, the launcher reads the candidate commit’s exact engine identity and `executionContractVersion`, verifies the locked executable, `prePushProtocolVersion`, and supported execution-contract versions, and then runs the dedicated isolated `repo-governance verify-execution --pre-push` path. It never falls back to mutable workspace configuration, a default engine, or the legacy `check` path. Missing protocol fields, incompatible versions, damaged candidate configuration, and missing or corrupt engines block execution.
 
 ## Agent preflight and automatic adoption policy
 
@@ -45,6 +45,14 @@ The command is offline and read-only. `ok` says whether inspection completed, `s
 An optional `~/.repo-governance-agent.json` can map normalized real path prefixes to explicit presets. Longest-prefix matching is deterministic, equal-priority conflicts block, and `autoBootstrap` can only waive repeated confirmation for `bootstrap` when a matching preset already exists. It never authorizes preset inference, `github enforce --confirm`, pull request creation, comments, ruleset changes, or other remote writes. See [Agent automatic adoption](docs/agent-auto-adoption.md) for the schema, lifecycle, and complete state examples.
 
 The three gates have separate jobs: Agent preflight discovers whether work may start; the repository's offline Git pre-push hook defends every governed push; `prepare-pr` checks the clean committed change set before pull request work. Optional Codex and Claude Code lifecycle Hooks surface the preflight decision earlier, but are explicit trusted guardrails rather than a complete enforcement boundary.
+
+RG006 validates the separately versioned execution contract: registered runtimes, exact package-manager identities, dependency preparation, lifecycle policy, ordered build/codegen/test stages, and declared consumers. Static checks never claim clean-checkout or semantic-coverage evidence. See [Execution contracts and RG006](docs/execution-contracts.md).
+
+The v1.3 migration and release boundary is summarized in [v1.3 release](docs/v1.3-release.md).
+
+Each protected workflow is linked only through its profile consumer and checks out the declared event revision with `clean: true`. The job may set up the declared runtime and restore an external package-download cache, but dependency installation, build, code generation, and tests belong to governed execution rather than independent workflow steps.
+
+Pre-push canonical bases come only from the named push remote and its remote-tracking default branch; the Hook never fetches or substitutes a local branch. Every unique pushed tip/base pair runs in a detached local clone that cannot reuse source-workspace dependencies or ignored outputs. CI uses the exact event head/base SHAs and writes the base to `refs/repo-governance/base`.
 
 ## Quick Start for Existing Repositories
 

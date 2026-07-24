@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { bootstrapRepository } from "../src/bootstrap.mjs";
 import { governanceDataRoot } from "../src/paths.mjs";
+import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "../src/protocol.mjs";
 import { commitAll, git, initGitRepo, temporaryDirectory, write } from "./helpers.mjs";
 
 const identity = { version: "1.1.1", commitSha: "a".repeat(40) };
@@ -21,9 +23,16 @@ function isolatedEnv() {
 function installRuntime(env) {
   const dataRoot = governanceDataRoot(env);
   const engine = join(dataRoot, "engines", identity.commitSha);
+  const bytes = Buffer.from("#!/bin/sh\nexit 0\n");
   write(join(dataRoot, "dispatcher"), "#!/bin/sh\nexit 0\n", 0o755);
-  write(join(engine, "repo-governance"), "#!/bin/sh\nexit 0\n", 0o755);
-  write(join(engine, "engine-manifest.json"), `${JSON.stringify({ engineVersion: identity.version, engineCommitSha: identity.commitSha, sha256: "unused" })}\n`);
+  write(join(engine, "repo-governance"), bytes, 0o755);
+  write(join(engine, "engine-manifest.json"), `${JSON.stringify({
+    engineVersion: identity.version,
+    engineCommitSha: identity.commitSha,
+    sha256: createHash("sha256").update(bytes).digest("hex"),
+    prePushProtocolVersion: PRE_PUSH_PROTOCOL_VERSION,
+    supportedExecutionContractVersions: SUPPORTED_EXECUTION_CONTRACT_VERSIONS,
+  })}\n`);
 }
 
 function committedRepository() {
@@ -66,8 +75,8 @@ test("bootstrap composes Husky without removing its existing pre-push command", 
   const result = bootstrapRepository(repo, { presetName: "node-library", env, identity });
   assert.equal(result.hookMode, "husky");
   const hook = readFileSync(join(repo, ".husky", "pre-push"), "utf8");
-  assert.match(hook, /npm test/);
   assert.match(hook, /stable-dispatcher/);
+  assert.match(readFileSync(join(repo, ".husky", "pre-push.repo-governance-original"), "utf8"), /npm test/);
 });
 
 test("adoption findings roll back files and exact hook contents", () => {

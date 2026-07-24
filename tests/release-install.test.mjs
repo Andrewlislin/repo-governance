@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { basename, join } from "node:path";
 import test from "node:test";
 import { installReleaseBundle } from "../src/release-install.mjs";
+import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "../src/protocol.mjs";
 import { treeDigest } from "../src/tree-digest.mjs";
 import { temporaryDirectory, write } from "./helpers.mjs";
 
@@ -42,6 +43,8 @@ function bundle(overrides = {}) {
     cli: { file: cliName, sha256: digest(cli) },
     dispatcher: { file: dispatcherName, sha256: digest(dispatcher) },
     launcher: { file: dispatcherName, sha256: digest(dispatcher) },
+    prePushProtocolVersion: PRE_PUSH_PROTOCOL_VERSION,
+    supportedExecutionContractVersions: SUPPORTED_EXECUTION_CONTRACT_VERSIONS,
     skillsSha256: treeDigest(join(root, "skills")),
     policyAssetsSha256: treeDigest(join(root, "policy-assets")),
     agentAssetsSha256: treeDigest(join(root, "agent-assets")),
@@ -81,6 +84,8 @@ test("verified bundle installs CLI, dispatcher, versioned Agent assets, and Skil
   assert.ok(existsSync(join(result.agentAssets, "adapters", "claude-code", "hooks", "settings.example.json")));
   const engineManifest = JSON.parse(readFileSync(join(result.dataRoot, "engines", manifest.engineCommitSha, "engine-manifest.json"), "utf8"));
   assert.equal(engineManifest.agentAssetsSha256, manifest.agentAssetsSha256);
+  assert.equal(engineManifest.prePushProtocolVersion, PRE_PUSH_PROTOCOL_VERSION);
+  assert.deepEqual(engineManifest.supportedExecutionContractVersions, SUPPORTED_EXECUTION_CONTRACT_VERSIONS);
   assert.ok(Number.isFinite(Date.parse(engineManifest.installedAt)));
   assert.equal(result.dataRoot, join(env.XDG_DATA_HOME, "repo-governance"));
   assert.equal(result.skills.root, join(env.CODEX_HOME, "skills"));
@@ -199,6 +204,8 @@ for (const overrides of [
   { buildWorkflow: ".github/workflows/other.yml" },
   { engineCommitSha: "not-a-full-sha" },
   { attestationRequired: false },
+  { prePushProtocolVersion: 0 },
+  { supportedExecutionContractVersions: [] },
 ]) {
   test(`invalid provenance identity is rejected: ${JSON.stringify(overrides)}`, () => {
     const fixture = bundle(overrides);

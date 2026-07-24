@@ -7,6 +7,7 @@ import { GovernanceError } from "./errors.mjs";
 import { trackedChanges } from "./git.mjs";
 import { governanceDataRoot } from "./paths.mjs";
 import { installRuntimeEntries } from "./launcher-install.mjs";
+import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "./protocol.mjs";
 
 function sha256(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -22,7 +23,13 @@ export function controlledUpdate(repo, bundleDirectory, {
   const dirty = trackedChanges(repo, current.managedFiles || [".repo-governance.json"]);
   if (dirty.length > 0) throw new GovernanceError("Managed files have uncommitted changes; update was not started.", { code: "RG_UPDATE_DIRTY", details: { dirty } });
   const manifest = JSON.parse(readFileSync(join(bundleDirectory, "update-manifest.json"), "utf8"));
-  if (manifest.schemaVersion !== 1 || manifest.diffFingerprintAlgorithm !== current.diffFingerprintAlgorithm) throw new GovernanceError("Update manifest is incompatible with this configuration.", { code: "RG_UPDATE_MANIFEST" });
+  if (
+    manifest.schemaVersion !== 1
+    || manifest.diffFingerprintAlgorithm !== current.diffFingerprintAlgorithm
+    || manifest.prePushProtocolVersion < PRE_PUSH_PROTOCOL_VERSION
+    || !Array.isArray(manifest.supportedExecutionContractVersions)
+    || !SUPPORTED_EXECUTION_CONTRACT_VERSIONS.every((version) => manifest.supportedExecutionContractVersions.includes(version))
+  ) throw new GovernanceError("Update manifest is incompatible with this configuration.", { code: "RG_UPDATE_MANIFEST" });
   const engineSource = join(bundleDirectory, manifest.engine.file);
   if (!existsSync(engineSource) || sha256(engineSource) !== manifest.engine.sha256) throw new GovernanceError("New engine checksum verification failed.", { code: "RG_UPDATE_ENGINE" });
   if (!manifest.launcher?.file || !manifest.launcher?.sha256) {
@@ -50,6 +57,8 @@ export function controlledUpdate(repo, bundleDirectory, {
       engineVersion: manifest.engineVersion,
       engineCommitSha: manifest.engineCommitSha,
       sha256: manifest.engine.sha256,
+      prePushProtocolVersion: manifest.prePushProtocolVersion,
+      supportedExecutionContractVersions: manifest.supportedExecutionContractVersions,
       installedAt: new Date().toISOString(),
     }, null, 2)}\n`);
     engineInstalled = true;

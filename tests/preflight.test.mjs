@@ -6,6 +6,7 @@ import test from "node:test";
 import { bootstrapRepository } from "../src/bootstrap.mjs";
 import { governanceDataRoot } from "../src/paths.mjs";
 import { preflightRepository } from "../src/preflight.mjs";
+import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "../src/protocol.mjs";
 import { commitAll, initGitRepo, temporaryDirectory, write } from "./helpers.mjs";
 
 const identity = { version: "1.1.1", commitSha: "a".repeat(40) };
@@ -24,9 +25,16 @@ function isolatedEnv() {
 function installRuntime(env, selectedIdentity = identity) {
   const dataRoot = governanceDataRoot(env);
   const engine = join(dataRoot, "engines", selectedIdentity.commitSha);
+  const bytes = Buffer.from("engine\n");
   write(join(dataRoot, process.platform === "win32" ? "dispatcher.exe" : "dispatcher"), "dispatcher\n", 0o755);
-  write(join(engine, process.platform === "win32" ? "repo-governance.exe" : "repo-governance"), "engine\n", 0o755);
-  write(join(engine, "engine-manifest.json"), `${JSON.stringify({ engineVersion: selectedIdentity.version, engineCommitSha: selectedIdentity.commitSha })}\n`);
+  write(join(engine, process.platform === "win32" ? "repo-governance.exe" : "repo-governance"), bytes, 0o755);
+  write(join(engine, "engine-manifest.json"), `${JSON.stringify({
+    engineVersion: selectedIdentity.version,
+    engineCommitSha: selectedIdentity.commitSha,
+    sha256: createHash("sha256").update(bytes).digest("hex"),
+    prePushProtocolVersion: PRE_PUSH_PROTOCOL_VERSION,
+    supportedExecutionContractVersions: SUPPORTED_EXECUTION_CONTRACT_VERSIONS,
+  })}\n`);
 }
 
 function committedRepository() {

@@ -1,11 +1,11 @@
 name: Repo Governance Check
-description: Run the version-pinned repository governance engine against an explicit base and head
+description: Run the version-pinned repository governance execution profile
 inputs:
-  base-ref:
-    description: Trusted target repository base ref
+  profile:
+    description: Execution profile id
     required: true
-  head-sha:
-    description: Live pull request head SHA
+  event-file:
+    description: GitHub event payload path
     required: true
   engine-commit-sha:
     description: Full commit SHA used to load this Action and lock the engine
@@ -18,22 +18,31 @@ outputs:
   report-path:
     description: Path to the structured report
     value: ${{ inputs.report-path }}
+  report-artifact:
+    description: Reserved artifact name for an optional read-only reporter
+    value: repo-governance-report
 runs:
   using: composite
   steps:
     - name: Install pinned engine dependencies
       shell: bash
       run: npm ci --ignore-scripts --prefix "$GITHUB_ACTION_PATH/.."
-    - name: Run pinned governance engine
+    - name: Run pinned governed execution
       shell: bash
       env:
-        RG_BASE_REF: ${{ inputs.base-ref }}
-        RG_HEAD_SHA: ${{ inputs.head-sha }}
         RG_ENGINE_SHA: ${{ inputs.engine-commit-sha }}
         RG_REPORT: ${{ inputs.report-path }}
       run: |
         set -euo pipefail
-        REPO_GOVERNANCE_ENGINE_SHA="$RG_ENGINE_SHA" node "$GITHUB_ACTION_PATH/../bin/repo-governance.mjs" check \
-          --base "$RG_BASE_REF" \
-          --head "$RG_HEAD_SHA" \
-          --json > "$RG_REPORT" 2>&1
+        REPORT_TMP="$(mktemp "$RUNNER_TEMP/repo-governance-report.XXXXXX")"
+        trap 'rm -f "$REPORT_TMP"' EXIT HUP INT TERM
+        PATH="$GITHUB_ACTION_PATH/../node_modules/.bin:$PATH" \
+        REPO_GOVERNANCE_ENGINE_SHA="$RG_ENGINE_SHA" \
+        node "$GITHUB_ACTION_PATH/../bin/repo-governance.mjs" verify-execution \
+          --profile "${{ inputs.profile }}" \
+          --ci \
+          --event-file "${{ inputs.event-file }}" \
+          --json > "$REPORT_TMP" 2>&1
+        mkdir -p "$(dirname "$RG_REPORT")"
+        mv "$REPORT_TMP" "$RG_REPORT"
+        trap - EXIT HUP INT TERM
