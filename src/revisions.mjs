@@ -8,18 +8,35 @@ function failure(message, code, details = {}) {
   throw new GovernanceError(message, { code, details });
 }
 
-function optionalCommit(repo, revision) {
-  const result = runGit(["rev-parse", "--verify", `${revision}^{commit}`], { cwd: repo, allowFailure: true });
+function optionalCommit(repo, revision, env) {
+  const result = runGit(["rev-parse", "--verify", `${revision}^{commit}`], { cwd: repo, env, allowFailure: true });
   return result.status === 0 ? result.stdout.trim() : null;
 }
 
-function assertRemote(repo, remote, remoteUrl) {
-  const names = runGit(["remote"], { cwd: repo }).stdout.split(/\r?\n/).filter(Boolean);
+function assertRemote(repo, remote, remoteUrl, env) {
+  const names = runGit(["remote"], { cwd: repo, env }).stdout.split(/\r?\n/).filter(Boolean);
   if (!names.includes(remote)) failure("Pre-push requires a configured named remote; URL-only or unknown remotes cannot resolve an offline canonical base.", "RG_PRE_PUSH_REMOTE", { remote });
-  const configured = runGit(["remote", "get-url", "--push", remote], { cwd: repo, allowFailure: true }).stdout.trim();
+  const configured = runGit(["remote", "get-url", "--push", remote], { cwd: repo, env, allowFailure: true }).stdout.trim();
   if (!configured || (remoteUrl && configured !== remoteUrl)) {
     failure("Pre-push remote name and URL do not match the configured push remote.", "RG_PRE_PUSH_REMOTE", { remote, remoteUrl, configured });
   }
+}
+
+function candidateDefaultBranch(repo, pushedCommitSha, env) {
+  const shown = runGit(["show", `${pushedCommitSha}:.repo-governance.json`], { cwd: repo, env, allowFailure: true });
+  if (shown.status !== 0) {
+    failure("Candidate commit has no readable .repo-governance.json.", "RG_PRE_PUSH_CONFIG", { pushedCommitSha });
+  }
+  let config;
+  try {
+    config = JSON.parse(shown.stdout);
+  } catch {
+    failure("Candidate commit has invalid repository governance JSON.", "RG_PRE_PUSH_CONFIG", { pushedCommitSha });
+  }
+  if (typeof config.defaultBranch !== "string" || !config.defaultBranch) {
+    failure("Candidate commit has no valid defaultBranch.", "RG_PRE_PUSH_CONFIG", { pushedCommitSha });
+  }
+  return config.defaultBranch;
 }
 
 export function parsePrePushInput(input) {
@@ -35,10 +52,10 @@ export function parsePrePushInput(input) {
   });
 }
 
-export function resolvePrePushBase(repo, { remote, record, defaultBranch }) {
+export function resolvePrePushBase(repo, { remote, record, defaultBranch, env }) {
   const defaultRef = `refs/heads/${defaultBranch}`;
   if (record.remoteRef === defaultRef && record.remoteSha !== ZERO_SHA) {
-    const remoteCommit = optionalCommit(repo, record.remoteSha);
+    const remoteCommit = optionalCommit(repo, record.remoteSha, env);
     if (remoteCommit) {
       return {
         baseSource: "pre-push-remote-sha",
@@ -47,7 +64,7 @@ export function resolvePrePushBase(repo, { remote, record, defaultBranch }) {
     }
   }
   const trackingRef = `refs/remotes/${remote}/${defaultBranch}`;
-  const trackingCommit = optionalCommit(repo, trackingRef);
+  const trackingCommit = optionalCommit(repo, trackingRef, env);
   if (!trackingCommit) {
     failure(
       `Offline canonical base is unavailable. Run git fetch ${remote} ${defaultBranch}, then retry the push.`,
@@ -61,8 +78,8 @@ export function resolvePrePushBase(repo, { remote, record, defaultBranch }) {
   };
 }
 
-export function resolvePrePushCandidates(repo, { remote, remoteUrl, input, defaultBranch }) {
-  assertRemote(repo, remote, remoteUrl);
+export function resolvePrePushCandidates(repo, { remote, remoteUrl, input, env }) {
+  assertRemote(repo, remote, remoteUrl, env);
   const records = parsePrePushInput(input);
   const skipped = [];
   const grouped = new Map();
@@ -71,11 +88,12 @@ export function resolvePrePushCandidates(repo, { remote, remoteUrl, input, defau
       skipped.push({ ref: record.remoteRef, reason: "delete" });
       continue;
     }
-    const pushedCommitSha = optionalCommit(repo, record.localSha);
+    const pushedCommitSha = optionalCommit(repo, record.localSha, env);
     if (!pushedCommitSha) {
       failure("Pushed object cannot be peeled to a commit.", "RG_PRE_PUSH_OBJECT", { ref: record.localRef, pushedObjectSha: record.localSha });
     }
-    const base = resolvePrePushBase(repo, { remote, record, defaultBranch });
+    const defaultBranch = candidateDefaultBranch(repo, pushedCommitSha, env);
+    const base = resolvePrePushBase(repo, { remote, record, defaultBranch, env });
     const key = `${pushedCommitSha}\0${base.canonicalBaseInputSha}`;
     const resolved = {
       ref: record.localRef,
@@ -83,6 +101,7 @@ export function resolvePrePushCandidates(repo, { remote, remoteUrl, input, defau
       remoteRef: record.remoteRef,
       pushedObjectSha: record.localSha,
       pushedCommitSha,
+      defaultBranch,
       ...base,
     };
     const candidate = grouped.get(key);

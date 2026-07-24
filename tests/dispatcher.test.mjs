@@ -7,12 +7,13 @@ import test from "node:test";
 import { dispatch } from "../src/dispatcher.mjs";
 import { writeDefaultEngine } from "../src/launcher-install.mjs";
 import { PRE_PUSH_PROTOCOL_VERSION, SUPPORTED_EXECUTION_CONTRACT_VERSIONS } from "../src/protocol.mjs";
-import { baseConfig, initGitRepo, temporaryDirectory, write, writeConfig } from "./helpers.mjs";
+import { baseConfig, commitAll, initGitRepo, temporaryDirectory, write, writeConfig } from "./helpers.mjs";
 
 function setup() {
   const repo = initGitRepo();
   const sha = "a".repeat(40);
   writeConfig(repo, baseConfig({ engineVersion: "1.2.3", engineCommitSha: sha }));
+  const tip = commitAll(repo, "candidate");
   const data = temporaryDirectory("repo-governance-dispatch-");
   const env = { ...process.env, PATH: "", XDG_DATA_HOME: data };
   const engineDirectory = join(data, "repo-governance", "engines", sha);
@@ -27,12 +28,21 @@ function setup() {
     prePushProtocolVersion: PRE_PUSH_PROTOCOL_VERSION,
     supportedExecutionContractVersions: SUPPORTED_EXECUTION_CONTRACT_VERSIONS,
   })}\n`);
-  return { repo, env, executable };
+  return { repo, env, executable, tip };
+}
+
+function pushedInput(fixture) {
+  return `refs/heads/feature ${fixture.tip} refs/heads/feature ${"0".repeat(40)}\n`;
 }
 
 test("dispatcher locates the locked engine with an empty PATH", () => {
   const fixture = setup();
-  assert.equal(dispatch({ cwd: fixture.repo, env: fixture.env, argv: ["pre-push"] }).exitCode, 0);
+  assert.equal(dispatch({
+    cwd: fixture.repo,
+    env: fixture.env,
+    argv: ["pre-push", "origin", "git@example/repo"],
+    stdin: pushedInput(fixture),
+  }).exitCode, 0);
 });
 
 test("dispatcher routes pre-push to isolated execution verification and preserves arguments, cwd, environment, and inherited stdio", () => {
@@ -42,6 +52,7 @@ test("dispatcher routes pre-push to isolated execution verification and preserve
     cwd: fixture.repo,
     env: fixture.env,
     argv: ["pre-push", "origin", "git@example/repo"],
+    stdin: pushedInput(fixture),
     spawn(executable, argv, options) {
       invocation = { executable, argv, options };
       return { status: 7, signal: null };
@@ -49,10 +60,51 @@ test("dispatcher routes pre-push to isolated execution verification and preserve
   });
   assert.equal(result.exitCode, 7);
   assert.equal(invocation.executable, fixture.executable);
-  assert.deepEqual(invocation.argv, ["verify-execution", "--pre-push", "origin", "git@example/repo"]);
+  assert.deepEqual(invocation.argv, [
+    "verify-execution",
+    "--pre-push=true",
+    "--remote", "origin",
+    "--remote-url", "git@example/repo",
+  ]);
   assert.equal(invocation.options.cwd, fixture.repo);
   assert.equal(invocation.options.env, fixture.env);
-  assert.equal(invocation.options.stdio, "inherit");
+  assert.equal(invocation.options.stdio[0], "pipe");
+  assert.equal(invocation.options.input, pushedInput(fixture));
+});
+
+test("pre-push selects the engine from the candidate commit rather than the mutable worktree", () => {
+  const fixture = setup();
+  writeConfig(fixture.repo, baseConfig({ engineVersion: "9.9.9", engineCommitSha: "b".repeat(40) }));
+  let selected;
+  const result = dispatch({
+    cwd: fixture.repo,
+    env: fixture.env,
+    argv: ["pre-push", "origin", "git@example/repo"],
+    stdin: pushedInput(fixture),
+    spawn(executable) {
+      selected = executable;
+      return { status: 0, signal: null };
+    },
+  });
+  assert.equal(result.exitCode, 0);
+  assert.equal(selected, fixture.executable);
+});
+
+test("pre-push blocks a candidate that deletes governance configuration", () => {
+  const fixture = setup();
+  spawnSync("git", ["rm", ".repo-governance.json"], { cwd: fixture.repo });
+  fixture.tip = commitAll(fixture.repo, "delete governance");
+  let spawned = false;
+  const result = dispatch({
+    cwd: fixture.repo,
+    env: fixture.env,
+    argv: ["pre-push", "origin", "git@example/repo"],
+    stdin: pushedInput(fixture),
+    spawn() { spawned = true; },
+  });
+  assert.equal(result.exitCode, 2);
+  assert.equal(spawned, false);
+  assert.match(result.message, /no readable \.repo-governance\.json/);
 });
 
 test("one launcher routes two repositories to their independently locked engines", () => {
@@ -189,9 +241,16 @@ for (const [name, manifestOverride, configOverride, message] of [
       const config = baseConfig({ engineVersion: "1.2.3", engineCommitSha: "a".repeat(40), ...configOverride });
       for (const key of Object.keys(config)) if (config[key] === undefined) delete config[key];
       writeConfig(fixture.repo, config);
+      fixture.tip = commitAll(fixture.repo, "candidate configuration");
     }
     let spawned = false;
-    const result = dispatch({ cwd: fixture.repo, env: fixture.env, argv: ["pre-push"], spawn() { spawned = true; } });
+    const result = dispatch({
+      cwd: fixture.repo,
+      env: fixture.env,
+      argv: ["pre-push", "origin", "git@example/repo"],
+      stdin: pushedInput(fixture),
+      spawn() { spawned = true; },
+    });
     assert.equal(result.exitCode, 2);
     assert.equal(spawned, false);
     assert.match(result.message, message);

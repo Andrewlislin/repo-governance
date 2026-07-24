@@ -59,3 +59,13 @@ The protected Action invokes `verify-execution --profile <id> --ci --event-file 
 RG001–RG006 run before runtime validation or dependency preparation. After the static check succeeds, the verifier constructs a controlled `PATH` from the declared runtime, allowlisted system tools, exact package manager, and checkout-local dependency binaries. It then runs the profile’s `ciArgv` followed by its public entry. A final proof requires unchanged `HEAD`, unchanged `refs/repo-governance/base`, and no staged or unstaged tracked changes.
 
 The Action writes its JSON report to the runner’s external temporary directory while verification is active, then moves the completed report to the requested path. This prevents report creation itself from contaminating the initial clean-checkout proof.
+
+## Revision-bound pre-push
+
+The effective Hook path contains only a governance wrapper. On connection, an existing executable Hook is atomically moved to `pre-push.repo-governance-original`; a sibling manifest records wrapper, sidecar, dispatcher, permissions, digests, and protocol version. The wrapper applies `umask 077`, captures stdin once in a secure `mktemp` file, installs normal and signal cleanup traps, and passes the complete bytes first to the sidecar and then to the stable dispatcher. Either failure blocks the push. `hooks doctor` rejects missing, changed, recursive, non-executable, or digest-mismatched components. `hooks disconnect` restores the original Hook only while every recorded component is unchanged.
+
+The stable dispatcher parses the proposed ref records before selecting an engine. For every non-deletion object it peels the pushed commit, reads that commit’s `.repo-governance.json`, and verifies the candidate’s exact installed engine and protocol. It groups only candidates with the same verified identity and replays their original stdin records to that engine; mutable workspace configuration and the default-engine pointer are never fallbacks.
+
+The engine resolves the candidate commit’s own default branch and source-remote base, then creates an isolated checkout with `git clone --local --no-hardlinks --no-checkout`, `GIT_LFS_SKIP_SMUDGE=1`, and no submodule recursion. Each unique pushed commit/base pair is checked out detached and verified once per declared pre-push profile. Static RG001–RG006 validation precedes runtime checks, offline dependency preparation, and profile execution. Temporary checkouts are removed on success, failure, and handled termination signals, and source-repository Git operations use `GIT_OPTIONAL_LOCKS=0`.
+
+This local Hook remains bypassable with `git push --no-verify`, and an offline remote-tracking base can be stale. Required remote CI on the event’s exact revision is the final enforcement boundary.

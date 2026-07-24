@@ -7,12 +7,13 @@ import {
   resolvePrePushCandidates,
   writeCanonicalBaseRef,
 } from "../src/revisions.mjs";
-import { baseConfig, commitAll, git, initGitRepo, temporaryDirectory, write } from "./helpers.mjs";
+import { baseConfig, commitAll, git, initGitRepo, temporaryDirectory, write, writeConfig } from "./helpers.mjs";
 
 const ZERO_SHA = "0".repeat(40);
 
 function fixture() {
   const repo = initGitRepo();
+  writeConfig(repo, baseConfig());
   write(join(repo, "base.txt"), "base\n");
   const base = commitAll(repo, "base");
   const remote = join(temporaryDirectory("repo-governance-bare-parent-"), "remote.git");

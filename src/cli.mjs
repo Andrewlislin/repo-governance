@@ -3,7 +3,7 @@ import { asFailure, GovernanceError } from "./errors.mjs";
 import { repositoryRoot, resolveCanonicalBase } from "./git.mjs";
 import { checkRepository } from "./check.mjs";
 import { initializeRepository } from "./init.mjs";
-import { connectEffectiveRepositoryHook, doctorHooks, installFutureHooks, uninstallFutureHooks } from "./hooks.mjs";
+import { connectEffectiveRepositoryHook, disconnectEffectiveRepositoryHook, doctorHooks, installFutureHooks, uninstallFutureHooks } from "./hooks.mjs";
 import { createWaiver } from "./waiver.mjs";
 import { controlledUpdate } from "./update.mjs";
 import { readConfig } from "./config.mjs";
@@ -22,6 +22,7 @@ import { listRepositories, registerRepository, unregisterRepository } from "./re
 import { listEngines, pruneEngines } from "./engines.mjs";
 import { checkVersion } from "./release-catalog.mjs";
 import { verifyCiExecution } from "./verify-execution.mjs";
+import { readPrePushStdin, verifyPrePushExecution } from "./pre-push.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -56,9 +57,11 @@ function help() {
   prepare-pr [--base <ref>] [--json]
   check [--base <ref>] [--head <ref>] [--json]
   verify-execution --profile <id> --ci --event-file <json> [--json]
+  verify-execution --pre-push --remote <name> --remote-url <url> [--json]
   waiver create --name <name> --paths <a,b> --reason <text> --expires <ISO> [--base <ref>]
   hooks install --dispatcher <verified-file> [--compose]
   hooks doctor
+  hooks disconnect
   hooks uninstall
   github validate-waivers --event <json> --reviews <json> --report <json>
   github enforce --owner <owner> --repo <repo> --check <name> [--confirm]
@@ -235,6 +238,19 @@ export async function main(argv, context = {}) {
       return result.exitCode;
     }
     if (command === "verify-execution") {
+      if (parsed.flags["pre-push"]) {
+        if (!parsed.flags.remote || !parsed.flags["remote-url"]) {
+          throw new GovernanceError("Pre-push verification requires --remote and --remote-url.", { code: "RG_INVOCATION" });
+        }
+        const result = (context.verifyPrePushExecution || verifyPrePushExecution)(repo, {
+          remote: parsed.flags.remote,
+          remoteUrl: parsed.flags["remote-url"],
+          input: context.prePushInput ?? readPrePushStdin(),
+          env,
+        });
+        emit(result, json, stdout);
+        return 0;
+      }
       if (!parsed.flags.profile || !parsed.flags.ci || !parsed.flags["event-file"]) {
         throw new GovernanceError("verify-execution requires --profile, --ci, and --event-file.", { code: "RG_INVOCATION" });
       }
@@ -244,6 +260,10 @@ export async function main(argv, context = {}) {
         env,
       });
       emit(result, json, stdout);
+      return 0;
+    }
+    if (command === "hooks" && subcommand === "disconnect") {
+      emit(disconnectEffectiveRepositoryHook(repo, { env }), json, stdout);
       return 0;
     }
     if (command === "waiver" && subcommand === "create") {

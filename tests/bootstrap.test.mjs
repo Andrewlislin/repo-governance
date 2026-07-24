@@ -75,8 +75,8 @@ test("bootstrap composes Husky without removing its existing pre-push command", 
   const result = bootstrapRepository(repo, { presetName: "node-library", env, identity });
   assert.equal(result.hookMode, "husky");
   const hook = readFileSync(join(repo, ".husky", "pre-push"), "utf8");
-  assert.match(hook, /npm test/);
   assert.match(hook, /stable-dispatcher/);
+  assert.match(readFileSync(join(repo, ".husky", "pre-push.repo-governance-original"), "utf8"), /npm test/);
 });
 
 test("adoption findings roll back files and exact hook contents", () => {

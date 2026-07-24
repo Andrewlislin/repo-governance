@@ -152,6 +152,33 @@ test("verify-execution CLI forwards the exact CI profile and event file", async 
   assert.deepEqual(JSON.parse(stdout.value()), { ok: true });
 });
 
+test("verify-execution CLI forwards pre-push remote context and captured stdin", async () => {
+  const repo = repository();
+  const stdout = sink();
+  let received;
+  const code = await main([
+    "verify-execution",
+    "--pre-push=true",
+    "--remote", "origin",
+    "--remote-url", "example",
+    "--json",
+  ], {
+    cwd: repo,
+    stdout: stdout.stream,
+    prePushInput: "record\n",
+    verifyPrePushExecution(_repo, options) {
+      received = { repo: _repo, ...options };
+      return { mode: "pre-push" };
+    },
+  });
+  assert.equal(code, 0);
+  assert.equal(received.repo, realpathSync(repo));
+  assert.equal(received.remote, "origin");
+  assert.equal(received.remoteUrl, "example");
+  assert.equal(received.input, "record\n");
+  assert.deepEqual(JSON.parse(stdout.value()), { mode: "pre-push" });
+});
+
 test("preflight CLI treats non-Git state as a normal JSON classification", async () => {
   const cwd = temporaryDirectory("repo-governance-cli-preflight-");
   const env = { ...process.env, HOME: cwd, XDG_DATA_HOME: join(cwd, "data") };

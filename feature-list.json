@@ -113,7 +113,7 @@
     {
       "id": "v1.3-pr-7-revision-bound-pre-push",
       "description": "Wrapper and sidecar preservation with per-tip isolated pre-push verification",
-      "passes": false
+      "passes": true
     },
     {
       "id": "v1.3-pr-8-release",
