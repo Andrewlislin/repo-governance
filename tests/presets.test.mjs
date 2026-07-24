@@ -18,6 +18,10 @@ test("optional package commands materialize exact contracts without inventing mi
   assert.equal(result.config.publicCommands[0].definitionHash, commandDefinitionHash("node --test"));
   assert.ok(result.missingOptional.includes("build-command"));
   assert.ok(result.config.workflowAllowedEntries[0].endsWith(`@${"a".repeat(40)}`));
+  assert.equal(result.config.executionContractVersion, 1);
+  assert.equal(result.config.governanceCompleteness, "complete");
+  assert.equal(result.config.executionProfiles[0].consumers.some((consumer) => consumer.type === "pre-push"), true);
+  assert.equal(result.config.executionProfiles[0].consumers.some((consumer) => consumer.type === "github-actions"), true);
 });
 
 test("required selectors fail before configuration materialization", () => {

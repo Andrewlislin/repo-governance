@@ -64,6 +64,12 @@ export function verifyRuntime(repo, runtime, preparation, { env = process.env, p
       fail(`Node.js runtime does not match ${runtime.node.version}.`, "RG_RUNTIME", { expected: runtime.node.version, actual: process.versions.node });
     }
     paths.push(dirname(process.execPath));
+    if (runtime.packageManager) {
+      const nodePath = executableFromPath("node", env, platform);
+      if (!nodePath) fail("Declared package-manager execution requires an external Node.js command.", "RG_RUNTIME");
+      checkedVersion(nodePath, "node", runtime.node.version, env);
+      paths.push(dirname(nodePath));
+    }
   }
   for (const tool of runtime.systemTools || []) {
     const path = tool.source === "self-contained" ? join(repo, tool.path) : executableFromPath(tool.name, env, platform);

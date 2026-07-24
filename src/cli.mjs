@@ -60,6 +60,7 @@ function help() {
   verify-execution --pre-push --remote <name> --remote-url <url> [--json]
   waiver create --name <name> --paths <a,b> --reason <text> --expires <ISO> [--base <ref>]
   hooks install --dispatcher <verified-file> [--compose]
+  hooks connect
   hooks doctor
   hooks disconnect
   hooks uninstall
@@ -260,6 +261,10 @@ export async function main(argv, context = {}) {
         env,
       });
       emit(result, json, stdout);
+      return 0;
+    }
+    if (command === "hooks" && subcommand === "connect") {
+      emit(connectEffectiveRepositoryHook(repo, { env, requireDispatcher: true }), json, stdout);
       return 0;
     }
     if (command === "hooks" && subcommand === "disconnect") {

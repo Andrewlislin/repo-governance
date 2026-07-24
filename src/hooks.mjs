@@ -19,6 +19,10 @@ function configValue(args, options = {}) {
 }
 
 function dispatcherPath(dataRoot, platform = process.platform) {
+  if (platform !== "win32") {
+    const launcher = join(dataRoot, "launcher", "repo-governance-launcher");
+    if (existsSync(launcher)) return launcher;
+  }
   return join(dataRoot, platform === "win32" ? "dispatcher.exe" : "dispatcher");
 }
 
@@ -98,10 +102,14 @@ function installWrapperAt(hook, dataRoot, { platform = process.platform } = {}) 
   try {
     let original = existsSync(hook) ? readFileSync(hook) : null;
     if (original?.toString("utf8").includes(MARKER)) {
-      const legacy = `${dispatcherInvocation(dataRoot, platform)}\n`;
       const text = original.toString("utf8");
-      if (!text.endsWith(legacy)) throw new GovernanceError("The effective pre-push hook contains an unrecognized governance marker.", { code: "RG_HOOKS_CONFLICT", details: { path: hook } });
-      const stripped = text.slice(0, -legacy.length);
+      const invocations = [
+        `${dispatcherInvocation(dataRoot, platform)}\n`,
+        `${MARKER}\n"${join(dataRoot, platform === "win32" ? "dispatcher.exe" : "dispatcher")}" pre-push "$@"\n`,
+      ];
+      const invocation = invocations.find((candidate) => text.endsWith(candidate));
+      if (!invocation) throw new GovernanceError("The effective pre-push hook contains an unrecognized governance marker.", { code: "RG_HOOKS_CONFLICT", details: { path: hook } });
+      const stripped = text.slice(0, -invocation.length);
       original = stripped.trim() === "#!/bin/sh" ? null : Buffer.from(stripped);
     }
     if (original) {

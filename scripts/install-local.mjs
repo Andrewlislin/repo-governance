@@ -149,7 +149,7 @@ if (process.argv[1] === scriptPath) {
     const result = installLocalFromSource();
     process.stdout.write(`${result.message}\n`);
     if (result.actionRequired) process.stdout.write(`Run next: ${result.actionRequired}\n`);
-    process.stdout.write(`Run next: ${result.executable} hooks install\n`);
+    process.stdout.write(`Run next: ${result.executable} hooks connect\n`);
     process.stdout.write("Then adopt a repository with: repo-governance bootstrap --preset <preset>\n");
   } catch (error) {
     process.stderr.write(`${error.message}\n`);

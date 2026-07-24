@@ -48,6 +48,8 @@ The three gates have separate jobs: Agent preflight discovers whether work may s
 
 RG006 validates the separately versioned execution contract: registered runtimes, exact package-manager identities, dependency preparation, lifecycle policy, ordered build/codegen/test stages, and declared consumers. Static checks never claim clean-checkout or semantic-coverage evidence. See [Execution contracts and RG006](docs/execution-contracts.md).
 
+The v1.3 migration and release boundary is summarized in [v1.3 release](docs/v1.3-release.md).
+
 Each protected workflow is linked only through its profile consumer and checks out the declared event revision with `clean: true`. The job may set up the declared runtime and restore an external package-download cache, but dependency installation, build, code generation, and tests belong to governed execution rather than independent workflow steps.
 
 Pre-push canonical bases come only from the named push remote and its remote-tracking default branch; the Hook never fetches or substitutes a local branch. Every unique pushed tip/base pair runs in a detached local clone that cannot reuse source-workspace dependencies or ignored outputs. CI uses the exact event head/base SHAs and writes the base to `refs/repo-governance/base`.

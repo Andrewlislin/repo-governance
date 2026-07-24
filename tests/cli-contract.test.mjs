@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { realpathSync, rmSync } from "node:fs";
+import { readFileSync, realpathSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { main } from "../src/cli.mjs";
@@ -177,6 +177,19 @@ test("verify-execution CLI forwards pre-push remote context and captured stdin",
   assert.equal(received.remoteUrl, "example");
   assert.equal(received.input, "record\n");
   assert.deepEqual(JSON.parse(stdout.value()), { mode: "pre-push" });
+});
+
+test("hooks connect installs the strict repository wrapper through the verified dispatcher", async () => {
+  const repo = repository();
+  const home = temporaryDirectory("repo-governance-cli-hooks-");
+  const env = { ...process.env, HOME: home, XDG_DATA_HOME: join(home, "data") };
+  write(join(env.XDG_DATA_HOME, "repo-governance", "dispatcher"), "#!/bin/sh\nexit 0\n", 0o755);
+  const stdout = sink();
+  const code = await main(["hooks", "connect", "--json"], { cwd: repo, env, stdout: stdout.stream });
+  assert.equal(code, 0);
+  const report = JSON.parse(stdout.value());
+  assert.equal(report.changed, true);
+  assert.match(readFileSync(report.path, "utf8"), /umask 077/);
 });
 
 test("preflight CLI treats non-Git state as a normal JSON classification", async () => {

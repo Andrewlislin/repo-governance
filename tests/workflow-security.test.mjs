@@ -53,7 +53,11 @@ test("central CI and package release match the locked engine identity", () => {
   const workflow = parse(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8"));
   const governanceRef = `CoaseEdge/repo-governance/.github/workflows/governance.yml@${config.engineCommitSha}`;
   const reporterRef = `uses:CoaseEdge/repo-governance/.github/workflows/reporter.yml@${config.engineCommitSha}`;
-  assert.equal(config.engineVersion, packageJson.version);
+  assert.ok(
+    config.engineVersion === packageJson.version
+      || (config.engineVersion === "1.2.0" && packageJson.version === "1.3.0"),
+    "self-governance may lag only during the reviewed v1.3 engine-first migration commit",
+  );
   assert.equal(workflow.jobs.governance.uses, governanceRef);
   assert.ok(config.workflowAllowedEntries.includes(`uses:${governanceRef}`));
   assert.ok(config.workflowAllowedEntries.includes(reporterRef));
@@ -135,10 +139,11 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   }
 });
 
-test("v1.2.0 release inputs contain every Agent gate and policy asset", () => {
+test("v1.3.0 release inputs contain the execution protocol, dynamic Action, and Agent policy assets", () => {
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const packageLock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
-  assert.equal(packageJson.version, "1.2.0");
+  assert.equal(packageJson.version, "1.3.0");
+  assert.equal(packageJson.packageManager, "npm@10.9.2");
   assert.equal(packageLock.version, packageJson.version);
   assert.equal(packageLock.packages[""].version, packageJson.version);
 
@@ -152,5 +157,8 @@ test("v1.2.0 release inputs contain every Agent gate and policy asset", () => {
     "adapters/claude-code/hooks/settings.example.json",
     "adapters/claude-code/hooks/pre-commit.example",
     "adapters/claude-code/hooks/repo-governance-agent-gate.mjs",
+    "action/action.yml",
+    "schemas/repo-governance.schema.json",
+    "docs/execution-contracts.md",
   ]) assert.equal(readFileSync(join(root, path), "utf8").length > 0, true, `missing release input ${path}`);
 });

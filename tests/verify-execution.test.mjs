@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { dependencyPreparationDefinitionHash } from "../src/execution-contract.mjs";
-import { verifyCiExecution } from "../src/verify-execution.mjs";
+import { verifyCiExecution, verifyRuntime } from "../src/verify-execution.mjs";
 import { baseConfig, commitAll, git, initGitRepo, temporaryDirectory, write, writeConfig } from "./helpers.mjs";
 
 function fixture() {
@@ -148,5 +148,21 @@ test("tracked mutations produced by the profile fail the final clean-checkout pr
       },
     }),
     (error) => error.code === "RG_CLEAN_CHECKOUT",
+  );
+});
+
+test("package-manager profiles require an external Node command matching the declared runtime", () => {
+  const repo = initGitRepo();
+  const bin = temporaryDirectory("repo-governance-runtime-bin-");
+  symlinkSync("/usr/bin/false", join(bin, "node"));
+  const runtime = {
+    id: "node22-npm10",
+    node: { version: "22.x" },
+    packageManager: { name: "npm", version: "10.9.2" },
+    systemTools: [],
+  };
+  assert.throws(
+    () => verifyRuntime(repo, runtime, { env: {}, workingDirectory: "." }, { env: { PATH: bin } }),
+    (error) => error.code === "RG_RUNTIME" && /Node\.js|node/.test(error.message),
   );
 });
